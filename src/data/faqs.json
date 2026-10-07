@@ -1,0 +1,30 @@
+[
+  {
+    "q": "How do I find ice skating near me?",
+    "a": "Tap \"Use my location\" at the top of this page to list the closest rinks we track, sorted by distance. You can also pick your state to see every rink there ranked by Google rating and review volume, or search by city or rink name."
+  },
+  {
+    "q": "How are the rinks ranked?",
+    "a": "By Google rating, weighted by how many reviews sit behind it, so a 4.7 from 900 reviews ranks above a 5.0 from three. Nobody can pay for a higher position."
+  },
+  {
+    "q": "Are the opening hours accurate?",
+    "a": "They are the hours on each rink's public Google listing at the time of our last import. Rinks share ice between public skating, hockey, lessons and events, so public session times change often. Always check the rink's own schedule before you go."
+  },
+  {
+    "q": "Do ice rinks rent skates?",
+    "a": "Most public rinks do, usually for a separate fee from admission. Our skate rental filter only shows rinks whose own listing mentions rentals, so a rink missing from it may still rent skates. Call ahead if you need a particular size."
+  },
+  {
+    "q": "What should I wear ice skating?",
+    "a": "Warm, flexible layers, gloves and one pair of thin-to-medium socks. Skip jeans that soak through when you fall, and bring a helmet for young children. Our guide on what to wear covers indoor and outdoor rinks."
+  },
+  {
+    "q": "Is outdoor pond ice safe to skate on?",
+    "a": "Natural ice is never guaranteed safe, and its thickness can vary a lot across one pond. A supervised, maintained rink is the safer choice. If you do skate on natural ice, follow your state natural resources agency's guidance and never go alone."
+  },
+  {
+    "q": "A rink is missing or its details are wrong. How do I fix it?",
+    "a": "Email us from the contact page with the rink's name and what needs to change. Corrections and additions are free, and rink owners can ask us to update or remove a listing at any time."
+  }
+]

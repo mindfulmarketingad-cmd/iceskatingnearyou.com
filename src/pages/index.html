@@ -1,0 +1,127 @@
+<!--meta
+{
+  "path": "/",
+  "title": "Ice Skating Near Me: Find Public Ice Rinks Nearby",
+  "description": "Ice skating near me, sorted by distance: public ice rinks in every state with hours, Google ratings, phone numbers and directions. Find your nearest rink.",
+  "h1": "Ice Skating Near Me",
+  "nav": "home",
+  "layout": "raw",
+  "bodyClass": "home",
+  "scripts": ["home"]
+}
+-->
+<section class="hero">
+  <video class="hero-video" muted loop playsinline preload="none" poster="/assets/img/hero-poster.jpg" aria-hidden="true" data-hero-video>
+    <source src="/assets/video/hero.mp4" type="video/mp4">
+  </video>
+  <div class="hero-shade"></div>
+  <div class="wrap hero-inner">
+    <h1>Ice Skating Near Me</h1>
+    <p class="hero-sub">Public ice rinks, skating sessions and seasonal outdoor ice</p>
+    <p class="hero-copy">Search ice rinks across the United States, from neighborhood arenas to holiday rinks under the lights. Every rink has its hours, Google rating, phone number and directions in one place.</p>
+    <form class="hero-search" action="/search/" method="get" role="search">
+      <label class="visually-hidden" for="hero-q">Search rinks, cities or states</label>
+      <input id="hero-q" name="q" type="search" placeholder="Search rinks, cities or states" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+    <p class="hero-popular"><span>Popular:</span> {{POPULAR_LINKS}}</p>
+  </div>
+</section>
+
+<div class="tagline-band">
+  <p>Whether it is a first wobble around the boards, a birthday party on the ice or a crisp night under the lights, <strong>there is a rink near you.</strong></p>
+</div>
+
+<section class="section near-you" data-near-you data-has-data="{{HAS_DATA_ATTR}}">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Tailored to your location</p>
+        <h2>Ice Rinks Near You</h2>
+        <p class="section-sub" data-near-status>Top-rated rinks nationwide. Share your location to see the closest ones, sorted by straight-line distance.</p>
+      </div>
+      <div class="section-actions">
+        <button class="btn btn-outline btn-sm" type="button" data-locate>Use my location</button>
+        <button class="carousel-btn" type="button" data-scroll="-1" aria-label="Scroll left">&lsaquo;</button>
+        <button class="carousel-btn" type="button" data-scroll="1" aria-label="Scroll right">&rsaquo;</button>
+      </div>
+    </div>
+    <div class="carousel" data-carousel tabindex="0" aria-label="Nearby ice rinks">
+      {{TOP_RATED}}
+    </div>
+    {{DATA_STATUS}}
+  </div>
+</section>
+
+<section class="explore-band">
+  <div class="wrap explore-inner">
+    <p class="eyebrow eyebrow-light">Explore the directory</p>
+    <h2>{{EXPLORE_HEADING}}</h2>
+    <p>From hockey arenas in the Upper Midwest to rooftop and plaza rinks that only open for the holidays, every rink we list has its own page. Each one shows hours, contact details, ratings, nearby rinks and directions.</p>
+    <a class="btn btn-light" href="/states/">Browse ice rinks by state</a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    {{BLOG_CARDS_3}}
+  </div>
+</section>
+
+{{AD_DISPLAY}}
+
+<section class="section section-tint">
+  <div class="wrap">
+    <p class="eyebrow">Browse by state</p>
+    <h2>Find Ice Skating in Your State</h2>
+    {{STATE_TILES}}
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap why">
+    <div>
+      <p class="eyebrow">Why we built this</p>
+      <h2>Real rinks, real hours, ranked honestly</h2>
+      <p>Searching for a rink usually means a mix of out-of-date event pages and lists that cover the wrong side of the state. We built one directory that lists every public ice rink we can verify, from the business data the rinks themselves publish on Google.</p>
+      <p>Rinks are ranked by Google rating weighted by how many reviews sit behind it, so a 4.7 from 900 skaters beats a 5.0 from three. Nobody pays for a higher spot. When a detail is missing, the page says so instead of guessing.</p>
+      <p><a class="btn btn-dark" href="/about/">About Ice Skating Near You</a></p>
+    </div>
+    <img class="why-img" src="/assets/img/why-skate.jpg" alt="Skaters on an outdoor city ice rink at dusk" width="640" height="640" loading="lazy">
+  </div>
+</section>
+
+<section class="stats-band" aria-label="Directory statistics">
+  <div class="wrap">
+    <ul class="stats">
+      <li><b>{{STAT_LISTINGS}}</b><span>ice rinks listed</span></li>
+      <li><b>{{STAT_STATES}}</b><span>states covered</span></li>
+      <li><b>{{STAT_CITIES}}</b><span>city guides</span></li>
+      <li><b>{{STAT_GUIDES}}</b><span>skating guides</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <p class="eyebrow">Browse by type</p>
+    <h2>Find the Right Kind of Ice</h2>
+    {{FIND_CHIPS}}
+  </div>
+</section>
+
+<section class="section section-tint">
+  <div class="wrap">
+    <p class="eyebrow">From the blog</p>
+    <h2>Skate Smarter</h2>
+    {{BLOG_CARDS_6}}
+    <p><a class="btn btn-outline btn-sm" href="/blog/">All guides</a></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap-narrow">
+    <h2 class="center">Ice Skating Near Me: Frequently Asked Questions</h2>
+    {{FAQ}}
+  </div>
+</section>

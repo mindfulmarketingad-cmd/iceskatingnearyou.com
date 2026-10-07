@@ -1,0 +1,26 @@
+{
+  "name": "iceskatingnearyou",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static directory of public ice skating rinks across the United States.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/build.mjs && node scripts/check.mjs",
+    "dev": "node scripts/build.mjs && node scripts/serve.mjs",
+    "serve": "node scripts/serve.mjs",
+    "import": "node scripts/import-outscraper.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "state-shapes": "node scripts/make-state-shapes.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "d3-geo": "^3.1.1",
+    "topojson-client": "^3.1.0",
+    "us-atlas": "^3.0.1",
+    "xlsx": "^0.18.5"
+  }
+}
