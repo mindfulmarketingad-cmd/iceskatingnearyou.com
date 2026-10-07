@@ -382,3 +382,20 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .search-kind { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--blue-600); }
 .hero-inner, .explore-inner { width: 100%; }
 .eyebrow + h2, .eyebrow + h1 { margin-top: 0; }
+
+/* -------------------------------------------------------------- blog hub */
+.flush { padding: 0; }
+.post-rows { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.post-row { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 18px 22px 20px; box-shadow: var(--shadow-sm); }
+.post-row h2 { font-size: 1.2rem; margin: 0 0 4px; }
+.post-row h2 a { color: var(--ink); text-decoration: none; }
+.post-row h2 a:hover { color: var(--blue-600); }
+.post-row-meta { font-size: .82rem; color: var(--muted); margin: 0 0 8px; line-height: 1.5; }
+.post-row-meta a { color: var(--blue-600); }
+.post-row-excerpt { font-size: .98rem; color: var(--ink-2); margin: 0 0 12px; line-height: 1.65; }
+.pill-link { display: inline-block; background: var(--ice); color: var(--navy); font-size: .82rem; font-weight: 600; padding: 4px 14px; border-radius: 999px; text-decoration: none; }
+.pill-link:hover { background: var(--navy); color: #fff; }
+.pager { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 28px 0 0; }
+.pager > :last-child { justify-self: end; }
+.pager-label { font-size: .88rem; color: var(--muted); }
+.blog-about { margin-top: 56px; }

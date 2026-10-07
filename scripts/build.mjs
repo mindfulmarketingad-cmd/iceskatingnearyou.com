@@ -832,7 +832,7 @@ for (const post of posts) {
   };
   const dateLabel = new Date(`${meta.date}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="" width="800" height="500" fetchpriority="high"></figure>
-<p class="byline">By the ${SITE_NAME} team <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabel}</time> <span aria-hidden="true">&middot;</span> ${esc(meta.readingTime || '')}</p>
+<p class="byline">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabel}</time> <span aria-hidden="true">&middot;</span> ${esc(meta.readingTime || '')}</p>
 ${toc}
 ${injectArticleAds(html)}
 ${faqBlock(faqItems)}
@@ -869,6 +869,32 @@ ${list.map((p) => `  <article class="card post-card">
     </div>
   </article>`).join('\n')}
 </div>`;
+}
+
+/* Blog hub: one row per guide, newest first, paginated. */
+const BLOG_PAGE_SIZE = 24;
+const blogPagePath = (n) => (n === 1 ? '/blog/' : `/blog/page/${n}/`);
+const dateLabelFor = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+function blogRows(list) {
+  if (!list.length) return '<p>Guides are on the way.</p>';
+  return `<ol class="post-rows">
+${list.map((p) => `  <li class="post-row">
+    <h2><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a></h2>
+    <p class="post-row-meta">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${p.meta.date}">${dateLabelFor(p.meta.date)}</time> <span aria-hidden="true">&middot;</span> ${esc(p.meta.readingTime || '')}</p>
+    <p class="post-row-excerpt">${esc(p.meta.excerpt || '')}</p>
+    <a class="pill-link" href="${p.path}" aria-label="Read the guide: ${attr(p.meta.h1 || p.meta.title)}">Read the guide</a>
+  </li>`).join('\n')}
+</ol>`;
+}
+
+function blogPager(n, pages) {
+  if (pages < 2) return '';
+  return `<nav class="pager" aria-label="Blog pages">
+  ${n > 1 ? `<a class="btn btn-outline btn-sm" href="${blogPagePath(n - 1)}" rel="prev">Newer</a>` : '<span></span>'}
+  <span class="pager-label">Page ${n} of ${pages}</span>
+  ${n < pages ? `<a class="btn btn-outline btn-sm" href="${blogPagePath(n + 1)}" rel="next">Older</a>` : '<span></span>'}
+</nav>`;
 }
 
 /** Outline tiles for all 50 states and DC; states without listings yet are
@@ -1468,6 +1494,28 @@ for (const page of staticPages) {
   if (meta.path === '/') extra = [{ '@type': 'WebSite', name: SITE_NAME, url: SITE_URL, potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/search/?q={search_term_string}`, 'query-input': 'required name=search_term_string' } }, { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/assets/img/icon-512.png`, sameAs: Object.values(SOCIAL) }, faqJsonLd(faqs)];
   if (page.file === 'states') extra = [faqJsonLd(statesFaq())];
   const jsonld = [{ '@type': 'WebPage', name: meta.title, description: meta.description, url: SITE_URL + meta.path }, ...extra];
+  if (page.file === 'blog') {
+    // The blog hub paginates: page 1 at /blog/, then /blog/page/<n>/.
+    const pages = Math.max(1, Math.ceil(posts.length / BLOG_PAGE_SIZE));
+    for (let n = 1; n <= pages; n++) {
+      const pMeta = n === 1 ? meta : {
+        ...meta,
+        path: blogPagePath(n),
+        title: `${meta.title.replace(/:.*$/, '')}, Page ${n}`,
+        description: fitDescription(`More practical ice skating guides, page ${n} of ${pages}: technique, gear, skate fit, sharpening, rink sessions and ice safety for beginners and families.`, ['Updated regularly.', 'Free to read.']),
+        trail: [{ label: 'Blog', href: '/blog/' }, { label: `Page ${n}` }],
+      };
+      const pBody = expandTokens(page.body)
+        .replace('{{BLOG_LIST}}', blogRows(posts.slice((n - 1) * BLOG_PAGE_SIZE, n * BLOG_PAGE_SIZE)))
+        .replace('{{BLOG_PAGER}}', blogPager(n, pages));
+      const pLd = [{ '@type': 'CollectionPage', name: pMeta.title, description: pMeta.description, url: SITE_URL + pMeta.path }];
+      const headExtra = [n > 1 ? `<link rel="prev" href="${SITE_URL}${blogPagePath(n - 1)}">` : '', n < pages ? `<link rel="next" href="${SITE_URL}${blogPagePath(n + 1)}">` : ''].filter(Boolean).join('\n');
+      writePage(pMeta.path, render(pMeta, pBody, { jsonld: pLd, headExtra }));
+      addToSitemap(pMeta.path, n === 1 ? '0.7' : '0.4');
+    }
+    pageIndex.push({ path: meta.path, title: meta.h1, group: 'Site' });
+    continue;
+  }
   let body = expandTokens(page.body).replace('{{BREADCRUMBS}}', breadcrumbs(meta.trail));
   // The national map fetches the compact data file instead of inlining
   // thousands of points into the HTML.
