@@ -399,3 +399,49 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .pager > :last-child { justify-self: end; }
 .pager-label { font-size: .88rem; color: var(--muted); }
 .blog-about { margin-top: 56px; }
+
+/* ------------------------------------------------------------ /states/ list */
+.tracking-line { font-size: 1.1rem; color: var(--ink-2); margin: 6px 0 26px; }
+.tracking-line strong { color: var(--ink); }
+.state-list { list-style: none; padding: 0; margin: 0 0 48px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.state-list a { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--ink); text-decoration: none; font-size: 1rem; font-weight: 500; line-height: 1.3; height: 100%; transition: border-color .15s, box-shadow .15s; }
+.state-list a:hover { border-color: var(--blue); box-shadow: var(--shadow-sm); color: var(--navy); }
+.state-list-n { color: var(--muted); font-size: .88rem; font-weight: 500; }
+.states-more { max-width: none; }
+@media (max-width: 1100px) { .state-list { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 760px) { .state-list { grid-template-columns: repeat(2, 1fr); } }
+
+/* ------------------------------------------------- compact ranked entries */
+.lt-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 6px 0 12px; }
+.lt-page-count { margin: 0; font-size: .9rem; color: var(--muted); }
+.list-tools { background: var(--ice-50); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin: 0 0 22px; }
+.lt-q { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 14px; font: inherit; font-size: .98rem; background: #fff; }
+.lt-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: stretch; }
+.lt-control { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 0 0 12px; font-size: .85rem; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.lt-control select { border: 0; min-width: 0; padding: 8px 10px 8px 0; font-weight: 600; font-size: .88rem; background: transparent; }
+.lt-btn { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 14px; font-size: .88rem; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.lt-btn:hover { border-color: var(--blue); color: var(--blue-600); }
+.lt-count { margin: 12px 0 0; font-size: .9rem; font-weight: 700; color: var(--ink); }
+.entry { display: grid; grid-template-columns: 30px 130px minmax(0, 1fr); gap: 16px; align-items: start; padding: 18px; }
+.entry .entry-rank { width: 28px; height: 28px; font-size: .85rem; background: var(--blue); }
+.entry-thumb img { width: 130px; height: 82px; object-fit: cover; border-radius: var(--radius-sm); background: var(--ice); }
+.entry-title { font-size: 1.12rem; margin: 0 0 4px; }
+.entry-line { margin: 0 0 2px; font-size: .9rem; line-height: 1.6; color: var(--ink-2); }
+.entry-line a { color: var(--blue-600); }
+.entry-hours { margin: 6px 0 4px; font-size: .86rem; line-height: 1.55; color: var(--ink-2); }
+.entry-fit { margin: 0 0 4px; font-size: .9rem; font-weight: 600; color: var(--ink); line-height: 1.55; }
+.entry-blurb { margin: 6px 0 8px; font-size: 1rem; line-height: 1.7; }
+.entry .chip-row { margin: 4px 0 0; }
+.entry .status-flag { margin: 4px 0; }
+@media (max-width: 640px) {
+  .entry { grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 14px; }
+  .entry-thumb { display: none; }
+}
+.city-list { grid-template-columns: repeat(5, 1fr); margin-bottom: 8px; }
+@media (max-width: 1100px) { .city-list { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .city-list { grid-template-columns: repeat(2, 1fr); } }
+.plain-links { list-style: none; padding: 0; margin: 0; }
+.plain-links li { border-bottom: 1px solid var(--line); padding: 8px 0; line-height: 1.5; }
+.photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); background: var(--ice); }
+@media (max-width: 640px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }

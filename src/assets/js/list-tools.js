@@ -14,7 +14,7 @@
   var city = form.querySelector('[data-city-filter]');
   var type = form.querySelector('[data-type-filter]');
   var sort = form.querySelector('[data-sort]');
-  var count = form.querySelector('[data-count]');
+  var count = document.querySelector('[data-count]');
   var empty = document.querySelector('[data-empty]');
   var baseCount = count.textContent;
   var here = null;
@@ -107,13 +107,17 @@
     };
     document.body.appendChild(s1);
   }
-  form.querySelectorAll('[data-view-btn]').forEach(function (btn) {
+  var showDistance = form.querySelector('[data-show-distance]');
+  if (showDistance) showDistance.addEventListener('click', function () { sort.value = 'distance'; locate(); });
+
+  var viewBtns = document.querySelectorAll('[data-view-btn]');
+  viewBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       var map = btn.getAttribute('data-view-btn') === 'map';
       if (!mapView) return;
       listView.hidden = map;
       mapView.hidden = !map;
-      form.querySelectorAll('[data-view-btn]').forEach(function (b) {
+      viewBtns.forEach(function (b) {
         var on = b === btn;
         b.classList.toggle('is-active', on);
         b.setAttribute('aria-pressed', String(on));

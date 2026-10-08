@@ -4,46 +4,18 @@
   "title": "Ice Rinks by State: Ice Skating Near You, All 50 States",
   "description": "Browse ice skating rinks by state. Pick yours to see every public rink near you, ranked by Google reviews, with hours, phone numbers, addresses and maps.",
   "h1": "Ice Rinks by State",
+  "lede": "Every state we list ice rinks in, with how many we currently have. Pick a state to see its full, ranked directory.",
   "nav": "states",
-  "layout": "raw",
+  "layout": "wide",
   "requiresData": true,
   "trail": [{ "label": "States" }]
 }
 -->
-<section class="hub-hero">
-  <div class="wrap hub-hero-inner">
-    <div>
-      {{BREADCRUMBS}}
-      <p class="eyebrow">Browse the directory</p>
-      <h1>Ice Rinks by State</h1>
-      <p class="lede">{{STATS_LINE}} Choose a state to see every rink there, ranked, with hours and directions.</p>
-    </div>
-    <figure class="hub-hero-img">
-      <img src="/assets/img/photos/cover-2.jpg" alt="Skaters on an outdoor city ice rink at dusk" width="800" height="500" fetchpriority="high">
-    </figure>
-  </div>
-</section>
+<p class="tracking-line">{{STATS_TRACKING}}</p>
 
-<section class="section">
-  <div class="wrap">
-    <h2>All States</h2>
-    {{STATE_TILES}}
-    <p class="after-tiles"><a class="btn btn-outline btn-sm" href="/map/">See every rink on the United States ice rink map</a></p>
-  </div>
-</section>
+{{STATE_LIST}}
 
-{{AD_DISPLAY}}
-
-<section class="section section-tint">
-  <div class="wrap-mid">
-    <h2>States Ranked by Number of Ice Rinks</h2>
-    <p class="section-sub">Counts include every public ice venue we list from Google business data. "List hours" counts rinks whose Google listing publishes opening hours. {{DATA_STATUS}}</p>
-    {{STATE_RANK_TABLE}}
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap-narrow">
-    {{STATES_FAQ}}
-  </div>
-</section>
+<div class="prose states-more">
+  <h2>Looking for something more specific?</h2>
+  <p>Each state page lists every ice rink we have there, ranked by rating, with search and filters by city or rink type. If you would rather search by rink name or city across the whole directory instead of browsing state by state, use <a href="/search/">the directory search</a>, <a href="/find/">browse by rink type</a>, or <a href="/map/">explore the ice rink map</a>.</p>
+</div>

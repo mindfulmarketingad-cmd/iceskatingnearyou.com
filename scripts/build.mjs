@@ -266,12 +266,6 @@ function groupedHours(hours) {
 
 const openDays = (l) => (l.hours ? DAYS.filter((d) => l.hours[d] && !isClosed(l.hours[d])) : []);
 
-function hoursListHtml(l, cls = 'hours-list') {
-  const groups = groupedHours(l.hours);
-  if (!groups.length) return `<p class="missing">Hours not listed. Check the rink's schedule before you go.</p>`;
-  return `<dl class="${cls}">${groups.map((g) => `<div><dt>${g.label}</dt><dd>${esc(g.value)}</dd></div>`).join('')}</dl>`;
-}
-
 /** "6:30AM" style -> "06:30" (24h). Returns null when it cannot parse safely. */
 function parseClock(text, fallbackMeridiem) {
   const m = String(text).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
@@ -481,39 +475,75 @@ function prettyDomain(url) {
   }
 }
 
-/** One numbered entry in a listicle: hours, review count, summary, address,
- *  website and phone, with clickable feature chips. */
-function renderEntry(l, position, { peers, stateName, headingTag = 'h3' } = {}) {
+/* Openers cycle so a long ranked list does not read as one template
+   repeated. Index 0 is only ever used for #1. */
+const BLURB_OPENERS = [
+  (name, place) => `${name}${place} takes the top spot`,
+  (name, place) => `${name}${place} is next up`,
+  (name, place) => `${name}${place} rounds out this stretch of the list`,
+  (name, place) => `${name}${place} is another strong option`,
+  (name, place) => `${name}${place} is also worth a look`,
+];
+
+/** One or two data-grounded sentences for a ranked entry. */
+function blurbFor(l, position, stateName) {
+  const place = stateName ? ` in ${esc(l.city)}` : ` in ${esc(l.city)}, ${esc(l.stateCode)}`;
+  const opener = (position === 1 ? BLURB_OPENERS[0] : BLURB_OPENERS[1 + ((position - 2) % (BLURB_OPENERS.length - 1))])(esc(l.name), place);
+  const rating = l.rating && l.reviews
+    ? `, rated ${l.rating.toFixed(1)} out of 5 from ${num(l.reviews)} ${plural(l.reviews, 'review', 'reviews')}.`
+    : '. It has no Google rating yet.';
+  const programs = (l.features || []).filter((f) => !['Indoor rink', 'Outdoor rink', 'Seasonal rink', 'Wheelchair accessible', 'Good for kids'].includes(f));
+  const features = programs.length ? ` Its listing mentions ${joinNatural(programs.slice(0, 3).map((f) => esc(f.toLowerCase())))}.` : '';
+  return `${opener}${rating}${features}`;
+}
+
+/** "Perfect for" line, built only from tags on the listing. */
+function perfectFor(l) {
+  const f = l.features || [];
+  const parts = [
+    f.includes('Outdoor rink') || f.includes('Seasonal rink') ? 'a classic outdoor skate' : null,
+    f.includes('Hockey') ? 'hockey' : null,
+    f.includes('Figure skating') ? 'figure skaters' : null,
+    f.includes('Skating lessons') ? 'learning to skate' : null,
+    f.includes('Good for kids') ? 'families with kids' : null,
+    f.includes('Birthday parties') ? 'birthday parties' : null,
+    f.includes('Curling') ? 'trying curling' : null,
+  ].filter(Boolean);
+  if (parts.length) return `Perfect for ${joinNatural(parts.slice(0, 3))}.`;
+  if (l.rating >= 4.7 && l.reviews >= 100) return 'Perfect for a reliably great skate, based on reviews.';
+  return '';
+}
+
+function hoursLine(l) {
+  const groups = groupedHours(l.hours);
+  if (!groups.length) return '<span class="missing">Hours not listed. Confirm directly before you go.</span>';
+  return `<b>Hours:</b> ${groups.map((g) => `${g.label} ${esc(g.value)}`).join(' <span aria-hidden="true">&middot;</span> ')}`;
+}
+
+/** One numbered entry in a listicle: rating, review count, address, phone,
+ *  website, hours, a short summary and clickable type chips. */
+function renderEntry(l, position, { stateName, headingTag = 'h3' } = {}) {
+  const address = l.street ? [l.street, `${l.city}, ${l.stateCode}`, l.postalCode].filter(Boolean).join(', ') : null;
+  const tel = l.phone ? l.phone.replace(/[^\d+]/g, '') : '';
+  const sep = ' <span aria-hidden="true">&middot;</span> ';
+  const fit = perfectFor(l);
   return `<li class="entry" id="${attr(l.anchor)}" data-lat="${l.lat}" data-lng="${l.lng}" data-rank="${position}" data-name="${attr(l.name.toLowerCase())}" data-city="${attr(l.city.toLowerCase())}" data-types="${attr((l.features || []).map((f) => catByFeature.get(f)?.slug).filter(Boolean).join(' '))}" data-rating="${l.rating || 0}" data-reviews="${l.reviews || 0}">
-  <div class="entry-head">
-    <span class="entry-rank" aria-hidden="true">${position}</span>
-    <div>
-      <${headingTag} class="entry-title"><a href="${l.url}">${esc(l.name)}</a></${headingTag}>
-      <p class="entry-place">${esc(l.city)}, ${esc(l.stateCode)}<span class="entry-distance" hidden></span></p>
-    </div>
-  </div>
-  <div class="entry-grid">
-    <a class="entry-media" href="${l.url}" tabindex="-1" aria-hidden="true">${listingImage(l, { size: 'thumb' })}</a>
-    <div class="entry-body">
-      <p class="entry-rating">${ratingHtml(l)}${l.reviews ? ` <span class="entry-reviews">${num(l.reviews)} Google ${plural(l.reviews, 'review', 'reviews')}</span>` : ''}</p>
-      ${l.status === 'CLOSED_TEMPORARILY' ? '<p class="status-flag">Temporarily closed on Google</p>' : ''}
-      ${chipsHtml(l, stateName)}
-      <div class="entry-summary">${summaryHtml(l, peers)}</div>
-    </div>
-  </div>
-  <div class="entry-facts">
-    <dl class="fact-list">
-      ${contactFacts(l)}
-    </dl>
-    <div class="entry-hours">
-      <h4>Hours of operation</h4>
-      ${hoursListHtml(l)}
-    </div>
-  </div>
-  <div class="entry-actions">
-    <a class="btn btn-primary btn-sm" href="${l.url}">Rink details</a>
-    <a class="btn btn-outline btn-sm" href="${attr(directionsUrl(l))}" target="_blank" rel="nofollow noopener noreferrer">Directions</a>
-    ${l.phone ? `<a class="btn btn-outline btn-sm" href="tel:${attr(l.phone.replace(/[^\d+]/g, ''))}">Call</a>` : ''}
+  <span class="entry-rank" aria-hidden="true">${position}</span>
+  <a class="entry-thumb" href="${l.url}" tabindex="-1" aria-hidden="true">${listingImage(l, { size: 'thumb' })}</a>
+  <div class="entry-body">
+    <${headingTag} class="entry-title"><a href="${l.url}">${esc(l.name)}</a></${headingTag}>
+    <p class="entry-line">${l.rating ? `${stars(l.rating)} <b>${l.rating.toFixed(1)}</b>` : '<span class="missing">No rating yet</span>'}${l.reviews ? ` ${l.reviewsUrl ? `<a href="${attr(l.reviewsUrl)}" target="_blank" rel="nofollow noopener noreferrer">${num(l.reviews)} ${plural(l.reviews, 'review', 'reviews')}</a>` : `${num(l.reviews)} ${plural(l.reviews, 'review', 'reviews')}`}` : ''}${sep}<a href="${cityPath(l.state, l.city)}">${esc(l.city)}</a>, <a href="${statePath(l.state)}">${esc(l.stateCode)}</a><span class="entry-distance" hidden></span></p>
+    <p class="entry-line">${address ? `<a href="${attr(directionsUrl(l))}" target="_blank" rel="nofollow noopener noreferrer">${esc(address)}</a>` : '<span class="missing">Street address not listed</span>'}</p>
+    <p class="entry-line">${[
+      l.phone ? `<a href="tel:${attr(tel)}">${esc(l.phone)}</a>` : '<span class="missing">Phone not listed</span>',
+      l.website ? `<a href="${attr(l.website)}" target="_blank" rel="nofollow noopener noreferrer">Visit website</a>` : '<span class="missing">Website not listed</span>',
+      l.mapsUrl && l.photosCount ? `<a href="${attr(l.mapsUrl)}" target="_blank" rel="nofollow noopener noreferrer">Photos (${num(l.photosCount)})</a>` : '',
+    ].filter(Boolean).join(sep)}</p>
+    <p class="entry-hours">${hoursLine(l)}</p>
+    ${l.status === 'CLOSED_TEMPORARILY' ? '<p class="status-flag">Temporarily closed on Google</p>' : ''}
+    ${fit ? `<p class="entry-fit">${fit}</p>` : ''}
+    <p class="entry-blurb">${blurbFor(l, position, stateName)}</p>
+    ${chipsHtml(l, stateName)}
   </div>
 </li>`;
 }
@@ -596,24 +626,25 @@ function mapEmbed(items, { height = 'tall', lazy = false } = {}) {
 function listTools(items, stateName, { showCity = true } = {}) {
   const cities = [...new Set(items.map((l) => l.city))].sort();
   const cats = categories.map((c) => ({ c, n: featureCount(items, c) })).filter((x) => x.n);
-  return `<form class="list-tools" data-list-tools role="search" onsubmit="return false">
-  <div class="lt-search">
-    <label class="visually-hidden" for="lt-q">Search by rink name or city</label>
-    <input id="lt-q" type="search" placeholder="Search by rink name or city" autocomplete="off" data-q>
+  const label = `${items.length} ${plural(items.length, 'rink', 'rinks')}`;
+  return `<div class="lt-top">
+  <p class="lt-page-count">${label} on this page</p>
+  <div class="view-toggle" role="group" aria-label="View">
+    <button type="button" class="is-active" data-view-btn="list" aria-pressed="true">List</button>
+    <button type="button" data-view-btn="map" aria-pressed="false">Map</button>
   </div>
+</div>
+<form class="list-tools" data-list-tools role="search" onsubmit="return false">
+  <label class="visually-hidden" for="lt-q">Search by rink name or city</label>
+  <input class="lt-q" id="lt-q" type="search" placeholder="Search by name or city..." autocomplete="off" data-q>
   <div class="lt-controls">
-    ${showCity && cities.length > 1 ? `<label class="lt-control"><span>City</span><select data-city-filter><option value="">All ${cities.length} cities</option>${cities.map((c) => `<option value="${attr(c.toLowerCase())}">${esc(c)}</option>`).join('')}</select></label>` : ''}
-    ${cats.length ? `<label class="lt-control"><span>Type</span><select data-type-filter><option value="">All types</option>${cats.map(({ c, n }) => `<option value="${c.slug}">${esc(c.name)} (${n})</option>`).join('')}</select></label>` : ''}
-    <label class="lt-control"><span>Sort</span><select data-sort><option value="rank">Top ranked</option><option value="reviews">Most reviewed</option><option value="name">Name A-Z</option><option value="distance">Nearest to me</option></select></label>
-    <button class="btn btn-ghost btn-sm" type="button" data-reset>Reset</button>
+    ${showCity && cities.length > 1 ? `<label class="lt-control"><span>City</span><select data-city-filter><option value="">All cities</option>${cities.map((c) => `<option value="${attr(c.toLowerCase())}">${esc(c)}</option>`).join('')}</select></label>` : ''}
+    ${cats.length ? `<label class="lt-control"><span>Type</span><select data-type-filter><option value="">All</option>${cats.map(({ c, n }) => `<option value="${c.slug}">${esc(c.name)} (${n})</option>`).join('')}</select></label>` : ''}
+    <label class="lt-control"><span>Sort</span><select data-sort><option value="rank">Top rated</option><option value="reviews">Most reviewed</option><option value="name">Name A-Z</option><option value="distance">Nearest to me</option></select></label>
+    <button class="lt-btn" type="button" data-reset>Reset</button>
+    <button class="lt-btn" type="button" data-show-distance>Show distance from me</button>
   </div>
-  <div class="lt-foot">
-    <p class="lt-count" data-count role="status">${items.length} ${plural(items.length, 'rink', 'rinks')}${stateName ? ` in ${esc(stateName)}` : ''}</p>
-    <div class="view-toggle" role="group" aria-label="View">
-      <button type="button" class="is-active" data-view-btn="list" aria-pressed="true">List</button>
-      <button type="button" data-view-btn="map" aria-pressed="false">Map</button>
-    </div>
-  </div>
+  <p class="lt-count" data-count role="status">${label}</p>
 </form>`;
 }
 
@@ -918,23 +949,6 @@ ${Object.values(STATES).sort().map((s) => {
 </ul>`;
 }
 
-function stateRankTable() {
-  if (!stateNames.length) return '';
-  const rows = [...stateNames].sort((a, b) => byState.get(b).length - byState.get(a).length || a.localeCompare(b));
-  return `<div class="table-scroll"><table class="data-table rank-table">
-  <thead><tr><th scope="col">Rank</th><th scope="col">State</th><th scope="col">Rinks</th><th scope="col">Cities</th><th scope="col">Avg rating</th><th scope="col">List hours</th><th scope="col">Most in one city</th></tr></thead>
-  <tbody>
-${rows.map((s, i) => {
-    const items = byState.get(s);
-    const r = items.filter((l) => l.rating);
-    const top = citiesInState(s)[0];
-    return `    <tr><td>${i + 1}</td><td><a href="${statePath(s)}">${esc(s)}</a></td><td>${items.length}</td><td>${citiesInState(s).length}</td><td>${r.length ? (r.reduce((t, l) => t + l.rating, 0) / r.length).toFixed(1) : '-'}</td><td>${items.filter((l) => l.hours).length}</td><td>${esc(top.city)} (${top.items.length})</td></tr>`;
-  }).join('\n')}
-  </tbody>
-  <tfoot><tr><td></td><th scope="row">Total</th><td>${num(listings.length)}</td><td>${num(byCity.size)}</td><td></td><td>${num(listings.filter((l) => l.hours).length)}</td><td></td></tr></tfoot>
-</table></div>`;
-}
-
 /* --- state hubs: the money pages ---------------------------------------- */
 
 function stateFaq(stateName, items) {
@@ -1004,6 +1018,7 @@ for (const stateName of stateNames) {
       STATE_FILLERS
     ),
     h1: `${n} Ice ${rinkWord} Near Me in ${stateName}`,
+    lede: `Every ice rink we list in ${esc(stateName)}, ranked by rating and review volume across ${cities.length} ${plural(cities.length, 'city', 'cities')}. Search by name or city, or filter by type. Always confirm session times before you drive out, since public skating shares the ice with hockey, lessons and events.`,
     layout: 'wide',
     nav: 'states',
     trail: [{ label: 'States', href: '/states/' }, { label: stateName }],
@@ -1011,94 +1026,50 @@ for (const stateName of stateNames) {
 
   const neighbors = (STATE_NEIGHBORS[code] || []).map((c) => STATES[c]).filter((s) => byState.has(s));
   const faqItems = stateFaq(stateName, items);
-  const presentCats = categories.map((c) => ({ c, n: featureCount(items, c) })).filter((x) => x.n);
-  const topCity = cities[0];
   const sundayCount = items.filter((l) => l.hours && l.hours.sunday && !isClosed(l.hours.sunday)).length;
   const countOf = (slug) => featureCount(items, categories.find((c) => c.slug === slug));
   const outdoorish = items.filter((l) => (l.features || []).some((f) => f === 'Outdoor rink' || f === 'Seasonal rink')).length;
 
-  const intro = `<p class="hub-intro">Every ice rink we list in ${esc(stateName)}, ranked by Google rating weighted by review volume. ${n > 1 ? `${esc(items[0].name)} in ${esc(items[0].city)} leads the list` : `${esc(items[0].name)} in ${esc(items[0].city)} is the one rink we list so far`}${cities.length > 1 ? `, and ${esc(topCity.city)} has the most rinks (${topCity.items.length})` : ''}. Search by name or city, filter by type, or sort by distance from you. Always confirm session times before you drive out.</p>
-<p class="jump-links">Jump to: ${[
-    ['rink-list', 'The list'],
-    ['by-city', 'By city'],
-    presentCats.length ? ['by-type', 'By type'] : null,
-    ['highest-rated', 'Highest rated'],
-    ['planning', 'Planning'],
-    ['faq-h', 'FAQs'],
-  ].filter(Boolean).map(([id, label]) => `<a href="#${id}">${label}</a>`).join(' <span aria-hidden="true">&middot;</span> ')}</p>`;
-
-  const extremes = n >= 4 ? [
-    ['Northernmost', [...items].sort((a, b) => b.lat - a.lat)[0]],
-    ['Southernmost', [...items].sort((a, b) => a.lat - b.lat)[0]],
-    ['Easternmost', [...items].sort((a, b) => b.lng - a.lng)[0]],
-    ['Westernmost', [...items].sort((a, b) => a.lng - b.lng)[0]],
-  ] : [];
-  const highest = items.filter((l) => l.rating).slice(0, 5);
   const photos = items.filter((l) => l.photo).slice(0, 8);
+  const stateGuides = posts.slice(0, 10);
 
-  const cityTable = `<div class="table-scroll"><table class="data-table">
-  <thead><tr><th scope="col">City</th><th scope="col">Rinks</th><th scope="col">Top rated</th><th scope="col">Avg rating</th></tr></thead>
-  <tbody>
-${cities.slice(0, 25).map(({ city, items: ci }) => {
-    const r = ci.filter((l) => l.rating);
-    return `    <tr><td><a href="${cityPath(stateName, city)}">${esc(city)}</a></td><td>${ci.length}</td><td><a href="${ci[0].url}">${esc(ci[0].name)}</a></td><td>${r.length ? (r.reduce((s, l) => s + l.rating, 0) / r.length).toFixed(1) : '-'}</td></tr>`;
-  }).join('\n')}
-  </tbody>
-</table></div>`;
-
-  const body = `${intro}
-${listTools(items, stateName)}
-${renderAdSlot('display')}
+  const body = `${listTools(items, stateName)}
 <div class="list-view" data-view="list">
-  <h2 class="visually-hidden" id="rink-list">All ${n} ${esc(stateName)} ice ${plural(n, 'rink', 'rinks')}, ranked</h2>
-  ${entryList(items, { peers: items, stateName })}
+  ${entryList(items, { stateName })}
   <p class="empty-state" data-empty hidden><strong>No rinks match.</strong> Try a different search or <button type="button" class="btn-link" data-reset>reset the filters</button>.</p>
 </div>
 <div class="map-view" data-view="map" hidden>${mapEmbed(items, { lazy: true })}</div>
+${renderAdSlot('display')}
 
 <section class="hub-block" aria-labelledby="by-city">
-  <h2 id="by-city">Ice skating by city in ${esc(stateName)}</h2>
-  <p>${cities.length} ${plural(cities.length, 'city', 'cities')} with at least one rink. Pick one to see just those rinks.</p>
-  ${cityLinkGrid(stateName)}
+  <h2 id="by-city">Ice rinks by city in ${esc(stateName)}</h2>
+  <p>Pick a city to see just the rinks there.</p>
+  <ul class="state-list city-list">
+${cities.map(({ city, items: ci }) => `    <li><a href="${cityPath(stateName, city)}"><span>${esc(city)}</span><span class="state-list-n">${ci.length}</span></a></li>`).join('\n')}
+  </ul>
 </section>
-${presentCats.length ? `<section class="hub-block" aria-labelledby="by-type">
-  <h2 id="by-type">${esc(stateName)} ice rinks by type</h2>
-  <div class="chip-row chip-row-lg">${presentCats.map(({ c, n: k }) => `<a class="chip" href="${findStatePath(c, stateName)}">${esc(c.name)} <span>${k}</span></a>`).join('')}</div>
-</section>` : ''}
-${HUB_GUIDES.length ? `<section class="hub-block" aria-labelledby="guides">
-  <h2 id="guides">Ice skating guides</h2>
-  ${guideLinks(posts.slice(0, 8))}
+${stateGuides.length ? `<section class="hub-block" aria-labelledby="guides">
+  <h2 id="guides">${esc(stateName)} ice skating guides</h2>
+  <ul class="plain-links">
+${stateGuides.map((p) => `    <li><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a></li>`).join('\n')}
+  </ul>
 </section>` : ''}
 <section class="hub-block prose" aria-labelledby="planning">
   <h2 id="planning">Planning an ice skating trip in ${esc(stateName)}</h2>
-  <p>Most rinks here split their ice between public skating, hockey, figure skating and lessons, so a rink can be open all day with only a few hours of public skate. Of the ${n} ${plural(n, 'rink', 'rinks')} we list, ${withHours} publish opening hours on Google and ${sundayCount} list Sunday hours. Use those as a starting point, then check the rink's own session calendar.</p>
+  <p>Most rinks split their ice between public skating, hockey, figure skating and lessons, so a rink can be open all day with only a few hours of public skate. Of the ${n} ${plural(n, 'rink', 'rinks')} we list in ${esc(stateName)}, ${withHours} publish opening hours on Google and ${sundayCount} list Sunday hours. Use those as a starting point, then check the rink's own session calendar.</p>
   <p>${outdoorish ? `${outdoorish} ${esc(stateName)} ${plural(outdoorish, 'listing describes itself', 'listings describe themselves')} as outdoor or seasonal. Outdoor ice depends on the weather, so check for closures on mild or rainy days.` : `None of the rinks we list in ${esc(stateName)} describe themselves as outdoor or seasonal, so plan on indoor ice. Indoor rinks stay cold, so bring layers even in summer.`} ${countOf('skate-rentals') ? `${countOf('skate-rentals')} ${plural(countOf('skate-rentals'), 'rink mentions', 'rinks mention')} skate rental in ${plural(countOf('skate-rentals'), 'its', 'their')} listing.` : 'Most public rinks rent skates, but call ahead if you need a particular size.'}</p>
-  <p>New to the ice? Read <a href="/blog/how-to-ice-skate-for-beginners/">how to ice skate for the first time</a> and <a href="/blog/what-to-wear-ice-skating/">what to wear</a> before you go.</p>
+  <p>Bring gloves, wear warm layers you can move in, and arrive a little early on weekends, when public sessions fill fastest. New to the ice? Read <a href="/blog/how-to-ice-skate-for-beginners/">how to ice skate for the first time</a> before you go.</p>
+  <p><a class="btn btn-outline" href="${mapStatePath(stateName)}">Search the ${esc(stateName)} map</a></p>
 </section>
-${photos.length >= 3 ? `<section class="hub-block" aria-labelledby="photos">
-  <h2 id="photos">Photos from ${esc(stateName)} ice rinks</h2>
-  <div class="photo-strip">${photos.map((l) => `<a href="${l.url}">${listingImage(l, { size: 'card' })}<span>${esc(l.name)}</span></a>`).join('')}</div>
+${photos.length ? `<section class="hub-block" aria-labelledby="photos">
+  <h2 id="photos">Photos from ice rinks in ${esc(stateName)}</h2>
+  <div class="photo-grid">${photos.map((l) => `<a href="${l.url}" title="${attr(l.name)}">${listingImage(l, { size: 'card' })}</a>`).join('')}</div>
   <p class="data-note">Photos from each rink's Google Maps listing.</p>
-</section>` : ''}
-${renderAdSlot('display')}
-<div class="two-col">
-  <section class="hub-block" aria-labelledby="highest-rated">
-    <h2 id="highest-rated">Highest rated in ${esc(stateName)}</h2>
-    ${highest.length ? `<ol class="mini-list">${highest.map((l) => `<li><a href="${l.url}">${esc(l.name)}</a> <span>${l.rating.toFixed(1)} from ${num(l.reviews || 0)} ${plural(l.reviews || 0, 'review', 'reviews')}, ${esc(l.city)}</span></li>`).join('')}</ol>` : '<p class="missing">No rinks here have a Google rating yet.</p>'}
-  </section>
-  ${extremes.length ? `<section class="hub-block" aria-labelledby="compass">
-    <h2 id="compass">${esc(stateName)} ice rinks by the compass</h2>
-    <ul class="compass-list">${extremes.map(([label, l]) => `<li><b>${label}</b><a href="${l.url}">${esc(l.name)}</a> <span>${esc(l.city)}</span></li>`).join('')}</ul>
-  </section>` : ''}
-</div>
-${cities.length > 1 ? `<section class="hub-block" aria-labelledby="city-table">
-  <h2 id="city-table">${esc(stateName)} ice rinks by city</h2>
-  ${cityTable}
 </section>` : ''}
 ${neighbors.length ? `<section class="hub-block" aria-labelledby="nearby-states">
   <h2 id="nearby-states">Ice skating in nearby states</h2>
-  <ul class="link-grid">
-${neighbors.map((s) => `    <li><a href="${statePath(s)}">${esc(s)}</a> <span>${byState.get(s).length}</span></li>`).join('\n')}
+  <ul class="state-list">
+${neighbors.map((st) => `    <li><a href="${statePath(st)}"><span>${esc(st)}</span><span class="state-list-n">${byState.get(st).length}</span></a></li>`).join('\n')}
   </ul>
 </section>` : ''}
 <div class="prose">
@@ -1435,25 +1406,6 @@ ${items.map((l) => `  <li><a href="${l.url}">${esc(l.name)}</a> <span>${esc(l.ci
 
 const topRated = rank(listings.filter((l) => (l.reviews || 0) >= 20)).slice(0, 12);
 
-function statesFaq() {
-  if (!hasData) {
-    return [
-      { q: 'Where does the rink data come from?', a: "From each rink's public Google business profile, gathered in bulk and checked before publication. Ratings and review counts are Google's figures, not our opinion." },
-      { q: 'Why is my state not listed yet?', a: 'State pages go live as soon as listings for that state are published. If you know a rink we should include, send it through the contact page.' },
-    ];
-  }
-  const sorted = [...stateNames].sort((a, b) => byState.get(b).length - byState.get(a).length);
-  const [first, second, third] = sorted;
-  return [
-    {
-      q: 'Which state has the most ice rinks?',
-      a: `In our directory, ${first} leads with ${byState.get(first).length} rinks${second ? `, followed by ${second} (${byState.get(second).length})` : ''}${third ? ` and ${third} (${byState.get(third).length})` : ''}.`,
-    },
-    { q: 'Where does the rink data come from?', a: `From each rink's public Google business profile, last refreshed ${DATA_DATE_LABEL}. Ratings and review counts are Google's figures, not our opinion.` },
-    { q: 'Why is my favorite rink missing?', a: 'Rinks without a usable address, rinks marked permanently closed, and roller rinks are left out. If a public ice rink is missing, send it through the contact page and we will add it.' },
-  ];
-}
-
 const tokens = {
   '{{CONTACT_EMAIL}}': CONTACT_EMAIL,
   '{{BUILD_DATE}}': BUILD_DATE,
@@ -1465,7 +1417,12 @@ const tokens = {
   '{{BLOG_CARDS_3}}': blogCards(posts.slice(0, 3)),
   '{{BLOG_CARDS_6}}': blogCards(posts.slice(3, 9).length >= 3 ? posts.slice(3, 9) : posts.slice(0, 6)),
   '{{STATE_TILES}}': stateTiles(),
-  '{{STATE_RANK_TABLE}}': stateRankTable(),
+  '{{STATE_LIST}}': stateNames.length
+    ? `<ul class="state-list">\n${stateNames.map((st) => `  <li><a href="${statePath(st)}"><span>${esc(st)}</span><span class="state-list-n">${byState.get(st).length}</span></a></li>`).join('\n')}\n</ul>`
+    : '<div class="notice"><p><strong>The rink directory is being compiled.</strong> State pages appear here as soon as listings are published.</p></div>',
+  '{{STATS_TRACKING}}': hasData
+    ? `Currently tracking <strong>${num(listings.length)}</strong> ice rinks across <strong>${num(stateNames.filter((st) => st !== 'District of Columbia').length)}</strong> states${byState.has('District of Columbia') ? ' plus DC' : ''} and <strong>${num(byCity.size)}</strong> cities.`
+    : '',
   '{{STAT_GUIDES}}': num(posts.length),
   '{{STATS_LINE}}': hasData
     ? `${num(listings.length)} ice rinks in ${num(stateNames.length)} ${plural(stateNames.length, 'state', 'states')}, across ${num(byCity.size)} ${plural(byCity.size, 'city', 'cities')}.`
@@ -1476,7 +1433,6 @@ const tokens = {
     : posts.slice(0, 3).map((p) => `<a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a>`).join(' <span aria-hidden="true">&middot;</span> '),
   '{{HAS_DATA_ATTR}}': hasData ? 'true' : 'false',
   '{{FAQ}}': faqBlock(faqs, null),
-  '{{STATES_FAQ}}': faqBlock(statesFaq(), 'Frequently asked questions'),
   '{{AD_DISPLAY}}': renderAdSlot('display'),
   '{{TOP_RATED}}': topRated.length
     ? `<div class="card-row" data-near-list>\n${topRated.map((l) => renderCard(l)).join('\n')}\n</div>`
@@ -1506,7 +1462,7 @@ for (const page of staticPages) {
   if (meta.scripts) scripts = meta.scripts.map((s) => (s === 'map' ? mapScripts() : `<script src="/assets/js/${s}.js?v=${ASSET_VERSION}" defer></script>`)).join('\n');
   let extra = [];
   if (meta.path === '/') extra = [{ '@type': 'WebSite', name: SITE_NAME, url: SITE_URL, potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/search/?q={search_term_string}`, 'query-input': 'required name=search_term_string' } }, { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/assets/img/icon-512.png`, sameAs: Object.values(SOCIAL) }, faqJsonLd(faqs)];
-  if (page.file === 'states') extra = [faqJsonLd(statesFaq())];
+  if (page.file === 'states' && hasData) extra = [{ '@type': 'ItemList', numberOfItems: stateNames.length, itemListElement: stateNames.map((st, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE_URL + statePath(st), name: `Ice rinks in ${st}` })) }];
   const jsonld = [{ '@type': 'WebPage', name: meta.title, description: meta.description, url: SITE_URL + meta.path }, ...extra];
   if (page.file === 'blog') {
     // The blog hub paginates: page 1 at /blog/, then /blog/page/<n>/.
