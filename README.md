@@ -99,6 +99,18 @@ The blog holds two kinds of post:
 - **Guides** (`src/pages/blog/*.html`, hand-written): informational questions only, such as technique, gear, safety and how rinks work.
 - **Lists** (generated): "[x] Best [type] in [State] [Year] List", one per state for all rinks plus one per rink type with at least 3 tagged rinks in that state (`LIST_TYPES` / `LIST_POST_MIN` in `scripts/build.mjs`; type nouns are `postNoun` in `src/data/categories.json`). The title tag and H1 are the same string. URLs leave out the count and year (`/blog/best-hockey-rinks-in-minnesota/`) so they stay stable. Wheelchair access has no list because nearly every rink carries it. These target the same local searches as the state pages, so every list links prominently to its state page and type page.
 
+### Featured rinks
+
+Every page ends with a "Featured ice rinks" block of four rink cards with photos. Pages that belong to a state (state, city, rink, type-by-state, map and list pages) feature rinks from that state; states with only one or two rinks top up from nationwide picks. Other pages feature rinks nationwide. Picks come from the highest-ranked rinks, rotated by page so different pages feature different rinks.
+
+To feature specific rinks (for example paying partners), add them to `data/featured.json` by `place_id` or slug, with an optional end date:
+
+```json
+{ "rinks": [ { "id": "ChIJ...", "until": "2027-03-31" } ] }
+```
+
+Those rinks lead the block on every page in their state (and nationwide pages) with a "Featured partner" badge until the end date. They do not change the ranked lists. If you start selling these spots, update the "no paid placement" lines on `/about/` and `/contact/`.
+
 ### Ranking
 
 Rinks are ranked by Google rating weighted by review volume (a Bayesian average with a 25-review prior), so a 4.7 from 900 reviews beats a 5.0 from three. Unrated rinks go last. Nobody can pay for position.

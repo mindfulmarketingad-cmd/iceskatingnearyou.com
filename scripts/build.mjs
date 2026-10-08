@@ -78,6 +78,12 @@ const photosFresh = photoAgeDays <= PHOTO_MAX_AGE_DAYS;
 if (!photosFresh) for (const l of listings) l.photo = null;
 
 const categories = JSON.parse(readFileSync(join(SRC, 'data/categories.json'), 'utf8'));
+/* Featured partners: rinks listed by place_id or slug in data/featured.json
+   ({ "rinks": [{ "id": "...", "until": "YYYY-MM-DD" }] }). They lead the
+   "Featured rinks" block on every page and carry a "Featured partner"
+   badge. They do NOT change the ranked lists. */
+const featuredFile = join(ROOT, 'data/featured.json');
+const featuredConfig = existsSync(featuredFile) ? JSON.parse(readFileSync(featuredFile, 'utf8')) : { rinks: [] };
 const faqs = JSON.parse(readFileSync(join(SRC, 'data/faqs.json'), 'utf8'));
 const template = readFileSync(join(SRC, 'templates/base.html'), 'utf8');
 const hasData = listings.length > 0;
@@ -564,15 +570,69 @@ function entryList(items, opts) {
   return `<ol class="entries" data-sortable>\n${parts.join('\n')}\n</ol>`;
 }
 
-function renderCard(l, { miles = null } = {}) {
-  return `<article class="card rink-card">
+function renderCard(l, { miles = null, badge = '' } = {}) {
+  return `<article class="card rink-card${badge ? ' is-partner' : ''}">
   <a class="card-media" href="${l.url}" tabindex="-1" aria-hidden="true">${listingImage(l, { size: 'card' })}</a>
+  ${badge ? `<span class="card-badge">${esc(badge)}</span>` : ''}
   <div class="card-body">
     <h3><a href="${l.url}">${esc(l.name)}</a></h3>
     <p class="card-place">${esc(l.city)}, ${esc(l.stateCode)}${miles != null ? ` <span class="card-miles">${miles < 1 ? 'under 1' : Math.round(miles)} mi away</span>` : ''}</p>
     <p class="card-rating">${l.rating ? `${stars(l.rating)} ${l.rating.toFixed(1)}${l.reviews ? ` <span>(${num(l.reviews)})</span>` : ''}` : '<span class="missing">No rating yet</span>'}</p>
   </div>
 </article>`;
+}
+
+/* --- featured rinks: a block on every page ---------------------------------
+   Partners from data/featured.json come first (in the page's state when the
+   page has one). The rest of the four slots are filled from the
+   highest-ranked rinks, in the page's state or nationwide, rotated by page
+   path so different pages feature different rinks. */
+const FEATURED_COUNT = 4;
+const partnerIds = new Set(
+  (featuredConfig.rinks || [])
+    .filter((r) => r && r.id && (!r.until || r.until >= BUILD_DATE))
+    .map((r) => String(r.id))
+);
+const partners = rank(listings.filter((l) => partnerIds.has(l.id) || partnerIds.has(l.placeId) || partnerIds.has(l.slug)));
+const isPartner = (l) => partners.includes(l);
+const nationalPool = rank(listings.filter((l) => (l.reviews || 0) >= 100 && l.status !== 'CLOSED_TEMPORARILY')).slice(0, 60);
+
+function featuredFor({ state = null, exclude = null, seed = '' } = {}) {
+  const ok = (l) => l.slug !== exclude;
+  const picked = partners.filter((l) => ok(l) && (!state || l.state === state)).slice(0, FEATURED_COUNT);
+  const pool = (state
+    ? rank((byState.get(state) || []).filter((l) => l.status !== 'CLOSED_TEMPORARILY')).slice(0, 12)
+    : nationalPool
+  ).filter((l) => ok(l) && !picked.includes(l));
+  if (pool.length) {
+    const start = seededHash(seed) % pool.length;
+    for (let i = 0; picked.length < FEATURED_COUNT && i < pool.length; i++) picked.push(pool[(start + i) % pool.length]);
+  }
+  // States with only a rink or two top up from the national picks.
+  if (picked.length < FEATURED_COUNT) {
+    const extra = nationalPool.filter((l) => ok(l) && !picked.includes(l));
+    const start = seededHash(`${seed}|n`) % Math.max(1, extra.length);
+    for (let i = 0; picked.length < FEATURED_COUNT && i < extra.length; i++) picked.push(extra[(start + i) % extra.length]);
+  }
+  return picked;
+}
+
+function featuredBlock(opts = {}) {
+  if (!hasData) return '';
+  const items = featuredFor(opts);
+  if (!items.length) return '';
+  const anyPartner = items.some(isPartner);
+  const inState = opts.state && items.every((l) => l.state === opts.state) ? opts.state : null;
+  return `<section class="featured-block" aria-labelledby="featured-h">
+  <div class="wrap">
+    <p class="eyebrow">Featured</p>
+    <h2 id="featured-h">Featured ice rinks${inState ? ` in ${esc(inState)}` : ''}</h2>
+    <p class="section-sub">${anyPartner ? 'Featured partners are marked. Other picks are' : 'Picked from'} the highest-rated rinks we list${inState ? ` in ${esc(inState)}` : opts.state ? ` in ${esc(opts.state)} and nationwide` : ' nationwide'}.</p>
+    <div class="card-grid featured-grid">
+${items.map((l) => renderCard(l, { badge: isPartner(l) ? 'Featured partner' : '' })).join('\n')}
+    </div>
+  </div>
+</section>`;
 }
 
 function stateFilterChips(items, stateName, current = null) {
@@ -794,6 +854,8 @@ function render(meta, body, opts = {}) {
 
   let html = template;
   for (const [token, value] of Object.entries(replacements)) html = html.split(token).join(value);
+  const featured = meta.noFeatured ? '' : featuredBlock({ state: meta.featuredState || null, exclude: meta.featuredExclude || null, seed: meta.path });
+  html = html.replace('{{FEATURED}}', () => featured);
   // Content goes in last so a token-like string inside page text is never expanded.
   return html.replace('{{CONTENT}}', () => layoutContent(meta, body));
 }
@@ -1015,6 +1077,7 @@ ${siblings.map((p) => `  <li><a href="${p.path}">${esc(p.meta.h1)}</a></li>`).jo
     layout: 'prose',
     nav: 'blog',
     ogType: 'article',
+    featuredState: stateName,
     trail: [{ label: 'Blog', href: '/blog/' }, { label: stateName, href: statePath(stateName) }, { label: meta.h1 }],
   };
   const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="" width="800" height="500" fetchpriority="high"></figure>
@@ -1167,6 +1230,7 @@ for (const stateName of stateNames) {
     lede: `Every ice rink we list in ${esc(stateName)}, ranked by rating and review volume across ${cities.length} ${plural(cities.length, 'city', 'cities')}. Search by name or city, or filter by type. Always confirm session times before you drive out, since public skating shares the ice with hockey, lessons and events.`,
     layout: 'wide',
     nav: 'states',
+    featuredState: stateName,
     trail: [{ label: 'States', href: '/states/' }, { label: stateName }],
   };
 
@@ -1268,6 +1332,7 @@ for (const [key, items] of byCity) {
       : `The ice rink we list in ${esc(cityName)}, with hours, contact details and directions, plus the closest rinks in nearby towns.`,
     layout: 'wide',
     nav: 'states',
+    featuredState: stateName,
     trail: [{ label: 'States', href: '/states/' }, { label: stateName, href: statePath(stateName) }, { label: cityName }],
   };
 
@@ -1351,6 +1416,8 @@ for (const l of listings) {
     layout: 'wide',
     nav: 'states',
     ogType: 'place',
+    featuredState: l.state,
+    featuredExclude: l.slug,
     trail: [
       { label: 'States', href: '/states/' },
       { label: l.state, href: statePath(l.state) },
@@ -1506,6 +1573,7 @@ ${entryList(top, { peers: items })}
       lede: esc(cat.intro),
       layout: 'wide',
       nav: 'find',
+      featuredState: stateName,
       trail: [{ label: 'Find', href: '/find/' }, { label: cat.name, href: findPath(cat) }, { label: stateName }],
     };
     const sBody = `${stateFilterChips(byState.get(stateName), stateName, cat.slug)}
@@ -1537,6 +1605,7 @@ for (const stateName of stateNames) {
     lede: `${items.length} ${plural(items.length, 'rink', 'rinks')}. Tap a pin to see the rink, or go back to the <a href="${statePath(stateName)}">ranked list for ${esc(stateName)}</a>.`,
     layout: 'wide',
     nav: 'states',
+    featuredState: stateName,
     trail: [{ label: 'Map', href: '/map/' }, { label: stateName }],
   };
   const body = `${mapEmbed(items)}
@@ -1551,6 +1620,15 @@ ${items.map((l) => `  <li><a href="${l.url}">${esc(l.name)}</a> <span>${esc(l.ci
 /* --- static pages (src/pages/*.html) with tokens -------------------------- */
 
 const topRated = rank(listings.filter((l) => (l.reviews || 0) >= 20)).slice(0, 12);
+
+/** Image for a /find/ block: a photo from the best-ranked rink of that type
+ *  that has one, falling back to the site's own skating photos. */
+function findImage(cat) {
+  const withPhoto = rank(listings.filter((l) => hasFeature(l, cat) && l.photo))[0];
+  const local = `/assets/img/photos/cover-${(seededHash(cat.slug) % 6) + 1}.jpg`;
+  const src = withPhoto ? resizedPhotoUrl(withPhoto.photo, ...IMAGE_SIZES.card) : local;
+  return `<img src="${attr(src)}" alt="" width="480" height="300" loading="lazy" decoding="async"${withPhoto ? ` referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${local}';"` : ''}>`;
+}
 
 const tokens = {
   '{{CONTACT_EMAIL}}': CONTACT_EMAIL,
@@ -1587,7 +1665,13 @@ const tokens = {
     ? `<div class="chip-row chip-row-lg">${findCounts.filter((x) => x.n).map(({ c, n }) => `<a class="chip" href="${findPath(c)}">${esc(c.name)} <span>${n}</span></a>`).join('')}</div>`
     : '<p>Type filters appear once listings are published.</p>',
   '{{FIND_LIST}}': findCounts.some((x) => x.n)
-    ? `<ul class="find-list">\n${findCounts.filter((x) => x.n).map(({ c, n }) => `  <li><a href="${findPath(c)}"><b>${esc(c.name)}</b> <span>${n} ${plural(n, 'rink', 'rinks')}</span></a><p>${esc(c.intro)}</p></li>`).join('\n')}\n</ul>`
+    ? `<ul class="find-list">\n${findCounts.filter((x) => x.n).map(({ c, n }) => `  <li class="find-card">
+    <a class="find-media" href="${findPath(c)}" tabindex="-1" aria-hidden="true">${findImage(c)}</a>
+    <div class="find-body">
+      <a class="find-title" href="${findPath(c)}"><b>${esc(c.name)}</b> <span>${n} ${plural(n, 'rink', 'rinks')}</span></a>
+      <p>${esc(c.intro)}</p>
+    </div>
+  </li>`).join('\n')}\n</ul>`
     : '<div class="notice"><p>Type filters appear here once listings are published.</p></div>',
   '{{MAP_STATE_LINKS}}': stateNames.length
     ? `<ul class="link-grid">\n${stateNames.map((s) => `  <li><a href="${mapStatePath(s)}">${esc(s)}</a> <span>${byState.get(s).length}</span></li>`).join('\n')}\n</ul>`

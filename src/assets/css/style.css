@@ -455,3 +455,19 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .prose .entry-thumb img { width: 110px; height: 70px; }
 .entry-detail { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 8px; }
 .entry-detail p { font-size: .98rem; margin: 0 0 .7em; }
+
+/* --------------------------------------------------------- featured rinks */
+.featured-block { background: var(--ice-50); border-top: 1px solid var(--line); padding: 44px 0 52px; }
+.featured-block h2 { margin: 0 0 4px; }
+.featured-block .section-sub { margin-bottom: 18px; }
+.featured-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.rink-card { position: relative; }
+.card-badge { position: absolute; top: 10px; left: 10px; background: var(--berry); color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+.rink-card.is-partner { border-color: var(--berry); }
+
+/* ----------------------------------------------------------- /find/ cards */
+.find-list .find-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.find-media { display: block; aspect-ratio: 16 / 9; background: var(--ice); overflow: hidden; }
+.find-media img { width: 100%; height: 100%; object-fit: cover; }
+.find-body { padding: 14px 18px 18px; }
+.find-list .find-title { display: flex; justify-content: space-between; gap: 10px; text-decoration: none; }
