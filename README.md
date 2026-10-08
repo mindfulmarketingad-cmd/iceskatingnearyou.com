@@ -94,7 +94,10 @@ Links run Home > Hub > Individual, and every page links back up through breadcru
 
 Titles lead with the generic head term ("Ice Skating Near Me: 24 Best Rinks in Ohio (2026)"), because Google matches these hubs to "ice skating near me" by the searcher's location.
 
-The blog answers informational questions only: technique, gear, safety and how rinks work. It deliberately has **no** programmatic "best rinks in <city>" posts, unlike the reference site, so it never competes with the hubs. The ranked listicles live on the state, city and type pages themselves.
+The blog holds two kinds of post:
+
+- **Guides** (`src/pages/blog/*.html`, hand-written): informational questions only, such as technique, gear, safety and how rinks work.
+- **Lists** (generated): "[x] Best [type] in [State] [Year] List", one per state for all rinks plus one per rink type with at least 3 tagged rinks in that state (`LIST_TYPES` / `LIST_POST_MIN` in `scripts/build.mjs`; type nouns are `postNoun` in `src/data/categories.json`). The title tag and H1 are the same string. URLs leave out the count and year (`/blog/best-hockey-rinks-in-minnesota/`) so they stay stable. Wheelchair access has no list because nearly every rink carries it. These target the same local searches as the state pages, so every list links prominently to its state page and type page.
 
 ### Ranking
 

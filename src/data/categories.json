@@ -5,6 +5,7 @@
     "name": "Indoor Ice Rinks",
     "singular": "indoor ice rink",
     "plural": "indoor ice rinks",
+    "postNoun": "Indoor Ice Rinks",
     "chip": "Indoor",
     "intro": "Indoor rinks and arenas keep their ice frozen year round, so they are the place to skate in summer, on a rainy day, or anywhere the winter is too mild for outdoor ice. Most run scheduled public skate sessions between hockey practices, figure skating freestyle sessions and lessons, so the session calendar matters more than the opening hours."
   },
@@ -14,6 +15,7 @@
     "name": "Outdoor Ice Rinks",
     "singular": "outdoor ice rink",
     "plural": "outdoor ice rinks",
+    "postNoun": "Outdoor Ice Rinks",
     "chip": "Outdoor",
     "intro": "Outdoor rinks are the classic winter outing: open sky, cold air and usually a hot drink nearby. Most are seasonal and weather dependent, so warm spells, rain and heavy snow can close them at short notice. Check the rink's own channels on the day you plan to go."
   },
@@ -23,6 +25,7 @@
     "name": "Seasonal and Holiday Ice Rinks",
     "singular": "seasonal ice rink",
     "plural": "seasonal ice rinks",
+    "postNoun": "Seasonal Ice Rinks",
     "chip": "Seasonal",
     "intro": "Seasonal and holiday rinks open for the winter months only, often in plazas, parks and downtown districts. Opening and closing dates change every year, so treat the listed hours as a guide and confirm the season dates before you travel."
   },
@@ -32,6 +35,7 @@
     "name": "Hockey Rinks",
     "singular": "hockey rink",
     "plural": "hockey rinks",
+    "postNoun": "Hockey Rinks",
     "chip": "Hockey",
     "intro": "These rinks mention hockey in their own listing: leagues, stick-and-puck, drop-in games or a home team. Most still run public skate sessions, but ice time is shared, so check the schedule for the session type you want."
   },
@@ -41,6 +45,7 @@
     "name": "Figure Skating Rinks",
     "singular": "figure skating rink",
     "plural": "figure skating rinks",
+    "postNoun": "Figure Skating Rinks",
     "chip": "Figure skating",
     "intro": "These rinks mention figure skating or a skating club in their own listing. Many offer freestyle sessions for skaters working on jumps and spins, alongside club programs and coaching. Freestyle ice usually has its own rules and eligibility, so ask before you book."
   },
@@ -50,6 +55,7 @@
     "name": "Ice Skating Lessons",
     "singular": "rink with skating lessons",
     "plural": "rinks with skating lessons",
+    "postNoun": "Ice Skating Lessons",
     "chip": "Lessons",
     "intro": "These rinks mention lessons, learn-to-skate classes or a skating school in their own listing. Group classes for children and adults are the usual starting point; private coaching is typically arranged directly with a coach who works at the rink."
   },
@@ -59,6 +65,7 @@
     "name": "Rinks With Skate Rentals",
     "singular": "rink with skate rentals",
     "plural": "rinks with skate rentals",
+    "postNoun": "Rinks With Skate Rentals",
     "chip": "Skate rentals",
     "intro": "These rinks mention skate rental in their own listing. Most public rinks rent skates, but not every listing says so, so a rink missing from this page may still have them. Rental is often priced separately from admission."
   },
@@ -68,6 +75,7 @@
     "name": "Curling Rinks",
     "singular": "curling venue",
     "plural": "curling venues",
+    "postNoun": "Curling Rinks",
     "chip": "Curling",
     "intro": "These venues mention curling in their own listing. Many curling clubs run learn-to-curl sessions for complete beginners, which are the easiest way to try the sport without joining a league."
   },
@@ -77,6 +85,7 @@
     "name": "Ice Rink Birthday Parties",
     "singular": "rink that hosts parties",
     "plural": "rinks that host parties",
+    "postNoun": "Ice Rink Birthday Parties",
     "chip": "Parties",
     "intro": "These rinks mention birthday parties or party rooms in their own listing. Party packages, minimum group sizes and what is included vary from rink to rink, so call ahead to ask what is available on your date."
   },

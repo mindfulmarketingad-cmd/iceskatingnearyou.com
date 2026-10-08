@@ -390,9 +390,10 @@ function standing(l, peers) {
   const pct = Math.round((lower / ratedPeers.length) * 100);
   const byReviews = [...ratedPeers].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
   const reviewRank = byReviews.indexOf(l) + 1;
-  if (reviewRank === 1) return 'the most-reviewed rink on this list';
-  if (reviewRank <= 3) return `one of the three most-reviewed rinks on this list`;
-  if (pct >= 75) return `rated higher than ${pct}% of the rinks on this list`;
+  const where = `we list in ${esc(l.state)}`;
+  if (reviewRank === 1) return `the most-reviewed rink ${where}`;
+  if (reviewRank <= 3) return `one of the three most-reviewed rinks ${where}`;
+  if (pct >= 75) return `rated higher than ${pct}% of the rinks ${where}`;
   return '';
 }
 
@@ -522,7 +523,7 @@ function hoursLine(l) {
 
 /** One numbered entry in a listicle: rating, review count, address, phone,
  *  website, hours, a short summary and clickable type chips. */
-function renderEntry(l, position, { stateName, headingTag = 'h3' } = {}) {
+function renderEntry(l, position, { stateName, headingTag = 'h3', peers = null, detail = false } = {}) {
   const address = l.street ? [l.street, `${l.city}, ${l.stateCode}`, l.postalCode].filter(Boolean).join(', ') : null;
   const tel = l.phone ? l.phone.replace(/[^\d+]/g, '') : '';
   const sep = ' <span aria-hidden="true">&middot;</span> ';
@@ -543,6 +544,7 @@ function renderEntry(l, position, { stateName, headingTag = 'h3' } = {}) {
     ${l.status === 'CLOSED_TEMPORARILY' ? '<p class="status-flag">Temporarily closed on Google</p>' : ''}
     ${fit ? `<p class="entry-fit">${fit}</p>` : ''}
     <p class="entry-blurb">${blurbFor(l, position, stateName)}</p>
+    ${detail ? `<div class="entry-detail">${summaryHtml(l, peers)}</div>` : ''}
     ${chipsHtml(l, stateName)}
   </div>
 </li>`;
@@ -761,7 +763,7 @@ ${body}
 </div>`;
 }
 
-const NAV_KEYS = ['home', 'blog', 'states', 'about', 'search'];
+const NAV_KEYS = ['home', 'blog', 'states', 'find', 'about', 'search'];
 
 function render(meta, body, opts = {}) {
   const graph = [
@@ -825,6 +827,9 @@ const posts = readPageFiles(join(SRC, 'pages/blog'))
   .map((p) => ({ ...p, path: postPath(p.meta.slug) }))
   .sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || '') || a.meta.title.localeCompare(b.meta.title));
 const postBySlug = new Map(posts.map((p) => [p.meta.slug, p]));
+// Hand-written informational guides. Generated list posts are added to
+// `posts` further down; places that should only show guides use this.
+const guidePosts = posts.slice();
 
 /* Guides surfaced on hub pages. Informational only, so they support the
    hubs without competing with them for "ice skating near me". */
@@ -838,6 +843,8 @@ function guideLinks(list = HUB_GUIDES) {
 ${list.map((p) => `  <li><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a><span>${esc(p.meta.excerpt || '')}</span></li>`).join('\n')}
 </ul>`;
 }
+
+const dateLabelFor = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
 /* Blog covers: a post can set "image" in its front matter; otherwise it
    gets one of the photo crops from the homepage video, picked by slug. */
@@ -856,12 +863,12 @@ function autoToc(bodyHtml) {
   return { toc, html: withIds };
 }
 
-for (const post of posts) {
+for (const post of guidePosts) {
   const { meta } = post;
   const path = post.path;
   const faqItems = meta.faq || [];
   const { toc, html } = autoToc(post.body);
-  const related = posts.filter((p) => p !== post).sort((a, b) => seededHash(meta.slug + a.meta.slug) - seededHash(meta.slug + b.meta.slug)).slice(0, 3);
+  const related = guidePosts.filter((p) => p !== post).sort((a, b) => seededHash(meta.slug + a.meta.slug) - seededHash(meta.slug + b.meta.slug)).slice(0, 3);
   const pageMeta = {
     ...meta,
     path,
@@ -896,6 +903,146 @@ ${related.length ? `<aside class="related"><h2>Keep reading</h2>${guideLinks(rel
   pageIndex.push({ path, title: meta.h1 || meta.title, group: 'Guides' });
 }
 
+/* --- generated "[x] Best [type] in [State] [Year] List" posts -------------
+   One post per state for all rinks, plus one per rink type that has at
+   least LIST_POST_MIN tagged rinks in that state. Title tag and H1 are the
+   same string. URLs leave out the count and year so they stay stable as
+   the data and the calendar change. Wheelchair access is skipped: nearly
+   every rink carries it, so its list would duplicate the all-rinks one. */
+const LIST_POST_MIN = 3;
+const LIST_POST_MAX = 10;
+const LIST_TYPES = [
+  { noun: 'Ice Skating Rinks', filter: () => true, cat: null },
+  ...categories.filter((c) => c.postNoun).map((c) => ({ noun: c.postNoun, filter: (l) => hasFeature(l, c), cat: c })),
+];
+const listPostsByState = new Map(); // stateName -> [post]
+const LIST_DATE = DATA_DATE || BUILD_DATE;
+
+const listPlans = [];
+for (const stateName of stateNames) {
+  for (const type of LIST_TYPES) {
+    const all = rank(byState.get(stateName).filter(type.filter));
+    if (all.length < LIST_POST_MIN) continue;
+    const top = all.slice(0, LIST_POST_MAX);
+    const title = `${top.length} Best ${type.noun} in ${stateName} ${YEAR} List`;
+    const slug = `best-${slugify(type.noun)}-in-${stateSlug(stateName)}`;
+    const lower = type.noun.toLowerCase();
+    const post = {
+      file: slug,
+      generated: true,
+      path: postPath(slug),
+      meta: {
+        slug,
+        title,
+        h1: title,
+        date: LIST_DATE,
+        excerpt: `The ${top.length} best ${lower} in ${stateName}, ranked by Google rating and review volume: ${joinNatural(top.slice(0, 3).map((l) => l.name))}${top.length > 3 ? ' and more' : ''}.`,
+        description: fitDescription(
+          [
+            `The ${top.length} best ${lower} in ${stateName} for ${YEAR}, ranked by Google reviews: ${top[0].name}, ${top[1].name} and more, with hours and directions.`,
+            `The ${top.length} best ${lower} in ${stateName} for ${YEAR}, ranked by Google reviews: ${top[0].name} and more, with hours and directions.`,
+            `The ${top.length} best ${lower} in ${stateName} for ${YEAR}, ranked by Google rating and reviews, with hours, phone numbers, addresses and directions.`,
+          ],
+          ['Updated for the season.', 'Check hours before you go.']
+        ),
+      },
+      stateName,
+      type,
+      all,
+      top,
+    };
+    listPlans.push(post);
+    if (!listPostsByState.has(stateName)) listPostsByState.set(stateName, []);
+    listPostsByState.get(stateName).push(post);
+  }
+}
+
+for (const post of listPlans) {
+  const { meta, stateName, type, all, top } = post;
+  const lower = type.noun.toLowerCase();
+  const x = top.length;
+  const n = all.length;
+  const stateItems = byState.get(stateName);
+  const typePage = type.cat ? findPageFor(type.cat, stateName) : null;
+  const sunday = top.filter((l) => l.hours && l.hours.sunday && !isClosed(l.hours.sunday));
+  const cities = new Set(all.map((l) => l.city)).size;
+  const siblings = (listPostsByState.get(stateName) || []).filter((p) => p !== post);
+
+  const faqItems = [
+    top[0].rating
+      ? { q: `What is the best place for ${lower} in ${stateName}?`, a: `${top[0].name} in ${top[0].city} ranks first, with a ${top[0].rating.toFixed(1)} Google rating from ${num(top[0].reviews || 0)} ${plural(top[0].reviews || 0, 'review', 'reviews')}.` }
+      : null,
+    { q: `How many ${lower} are there in ${stateName}?`, a: `We list ${n} in ${cities} ${plural(cities, 'city', 'cities')} across ${stateName}. This post covers the top ${x}; the full list is on our ${stateName} page.` },
+    {
+      q: `Which of these are open on Sundays?`,
+      a: sunday.length
+        ? `${sunday.length} of the ${x} list Sunday hours on Google: ${joinNatural(sunday.slice(0, 4).map((l) => l.name))}${sunday.length > 4 ? ' and others' : ''}. Public session times inside those hours vary, so check each rink's schedule.`
+        : `None of the ${x} rinks on this list show Sunday hours on Google right now. Hours change with the season, so check with the rink directly.`,
+    },
+    { q: 'How did you rank these?', a: `By Google rating weighted by review volume, as of ${DATA_DATE_LABEL}. A rink with hundreds of consistent reviews outranks one with a few perfect scores. No rink pays to be listed or ranked.` },
+  ].filter(Boolean);
+
+  const bodyHtml = `<p>${n > x
+    ? `We list ${n} ${lower} in ${esc(stateName)}. These are the ${x} with the strongest Google ratings once review volume is taken into account`
+    : `We list ${n} ${lower} in ${esc(stateName)}, and all ${n} are here, ranked by Google rating with review volume taken into account`}, so a rink with hundreds of consistent reviews outranks one with a handful of perfect scores. Every entry shows the hours, address, phone number and website from the rink's own Google listing as of ${DATA_DATE_LABEL}.</p>
+<p>${n > x ? `Want every option, not just the top ${x}?` : 'Want to compare them with the rest?'} See <a href="${statePath(stateName)}">all ${stateItems.length} ice rinks in ${esc(stateName)}</a>${typePage && n > x ? `, or <a href="${typePage}">all ${n} ${esc(lower)} in ${esc(stateName)}</a>` : ''}, ranked the same way with filters and a map.</p>
+<h2>The list at a glance</h2>
+<ol class="glance-list">
+${top.map((l) => `  <li><a href="#${attr(l.anchor)}">${esc(l.name)}</a> <span>${esc(l.city)}${l.rating ? ` &middot; ${l.rating.toFixed(1)}` : ''}</span></li>`).join('\n')}
+</ol>
+<h2>The ${x} best ${esc(lower)} in ${esc(stateName)}</h2>
+${entryList(top, { stateName, peers: stateItems, detail: true })}
+<h2>How we ranked them</h2>
+<p>Each rink's position comes from its Google rating, weighted by how many reviews sit behind it. A 4.7 from several hundred skaters is a steadier signal than a 5.0 from three, so it ranks higher. Rinks with no rating at all come last.</p>
+<p>${type.cat ? `A rink appears here when its own Google listing says it offers this, so the list is a starting point rather than the full picture. A rink that offers it without saying so will not show up.` : `The list covers public ice venues of every kind: indoor arenas, outdoor and seasonal rinks, and community rinks. Clubs, coaches and rink service companies are left out.`} Nobody pays to be listed or ranked.</p>
+<h2>Before you go</h2>
+<p>Rinks share their ice between public skating, hockey, figure skating and lessons, so a rink can be open all day with only a few hours of public skate. Check the session calendar on the rink's website or call ahead, especially on holidays and school breaks.</p>
+<p>New to the ice? Read <a href="/blog/how-to-ice-skate-for-beginners/">how to ice skate for the first time</a>, <a href="/blog/what-to-wear-ice-skating/">what to wear</a> and <a href="/blog/how-should-ice-skates-fit/">how skates should fit</a>.</p>
+${faqBlock(faqItems)}
+<h2>More ${esc(stateName)} ice skating lists</h2>
+<ul class="plain-links">
+${siblings.map((p) => `  <li><a href="${p.path}">${esc(p.meta.h1)}</a></li>`).join('\n')}
+  <li><a href="${statePath(stateName)}">All ${stateItems.length} ice rinks in ${esc(stateName)}</a></li>
+  <li><a href="${mapStatePath(stateName)}">Map of ${esc(stateName)} ice rinks</a></li>
+</ul>`;
+
+  const words = stripTags(bodyHtml).split(/\s+/).filter(Boolean).length;
+  meta.readingTime = `${Math.max(2, Math.round(words / 230))} min read`;
+  const { toc, html } = autoToc(bodyHtml);
+  const pageMeta = {
+    ...meta,
+    path: post.path,
+    layout: 'prose',
+    nav: 'blog',
+    ogType: 'article',
+    trail: [{ label: 'Blog', href: '/blog/' }, { label: stateName, href: statePath(stateName) }, { label: meta.h1 }],
+  };
+  const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="" width="800" height="500" fetchpriority="high"></figure>
+<p class="byline">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabelFor(meta.date)}</time> <span aria-hidden="true">&middot;</span> ${meta.readingTime}</p>
+${toc}
+${injectArticleAds(html)}`;
+  const jsonld = [
+    {
+      '@type': 'BlogPosting',
+      headline: meta.h1,
+      description: meta.description,
+      datePublished: meta.date,
+      dateModified: meta.date,
+      mainEntityOfPage: SITE_URL + post.path,
+      image: SITE_URL + postImage(post),
+      author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+      publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/img/icon-512.png` } },
+    },
+    itemListJsonLd(top),
+    faqJsonLd(faqItems),
+  ];
+  writePage(post.path, render(pageMeta, body, { jsonld, scripts: listToolScripts() }));
+  addToSitemap(post.path, '0.6', meta.date);
+  pageIndex.push({ path: post.path, title: meta.h1, group: 'Lists' });
+  posts.push(post);
+}
+posts.sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || '') || a.meta.title.localeCompare(b.meta.title));
+
 
 function blogCards(list) {
   if (!list.length) return '<p>Guides are on the way.</p>';
@@ -914,7 +1061,6 @@ ${list.map((p) => `  <article class="card post-card">
 /* Blog hub: one row per guide, newest first, paginated. */
 const BLOG_PAGE_SIZE = 24;
 const blogPagePath = (n) => (n === 1 ? '/blog/' : `/blog/page/${n}/`);
-const dateLabelFor = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
 function blogRows(list) {
   if (!list.length) return '<p>Guides are on the way.</p>';
@@ -1031,7 +1177,7 @@ for (const stateName of stateNames) {
   const outdoorish = items.filter((l) => (l.features || []).some((f) => f === 'Outdoor rink' || f === 'Seasonal rink')).length;
 
   const photos = items.filter((l) => l.photo).slice(0, 8);
-  const stateGuides = posts.slice(0, 10);
+  const stateGuides = [...(listPostsByState.get(stateName) || []), ...guidePosts.slice(0, 6)];
 
   const body = `${listTools(items, stateName)}
 <div class="list-view" data-view="list">
@@ -1264,7 +1410,7 @@ ${payments.length ? `      <li><b>Payments:</b> ${esc(payments.join(', '))}</li>
     <div class="card-grid">
 ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
     </div>` : ''}
-    <p class="crumb-links">${cityItems.length > 1 ? `<a href="${cityPath(l.state, l.city)}">All ${cityItems.length} rinks in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> ` : `<a href="${cityPath(l.state, l.city)}">Ice skating in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> `}<a href="${statePath(l.state)}">All ${peers.length} rinks in ${esc(l.state)}</a> <span aria-hidden="true">&middot;</span> <a href="${mapStatePath(l.state)}?focus=${attr(l.slug)}">See it on the map</a></p>
+    <p class="crumb-links">${cityItems.length > 1 ? `<a href="${cityPath(l.state, l.city)}">All ${cityItems.length} rinks in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> ` : `<a href="${cityPath(l.state, l.city)}">Ice skating in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> `}<a href="${statePath(l.state)}">All ${peers.length} rinks in ${esc(l.state)}</a>${(listPostsByState.get(l.state) || [])[0] ? ` <span aria-hidden="true">&middot;</span> <a href="${listPostsByState.get(l.state)[0].path}">${esc(listPostsByState.get(l.state)[0].meta.h1)}</a>` : ''} <span aria-hidden="true">&middot;</span> <a href="${mapStatePath(l.state)}?focus=${attr(l.slug)}">See it on the map</a></p>
   </div>
   <aside class="detail-side">
     <div class="card side-card">
@@ -1330,7 +1476,7 @@ for (const { c: cat, n } of findCounts) {
     h1: `${cat.name} Near Me`,
     lede: esc(cat.intro),
     layout: 'wide',
-    nav: 'states',
+    nav: 'find',
     trail: [{ label: 'Find', href: '/find/' }, { label: cat.name }],
   };
   const body = `<h2>${esc(cat.name)} by state</h2>
@@ -1359,8 +1505,8 @@ ${entryList(top, { peers: items })}
       h1: `${cat.name} in ${stateName}: ${k} Ranked`,
       lede: esc(cat.intro),
       layout: 'wide',
-      nav: 'states',
-      trail: [{ label: 'States', href: '/states/' }, { label: stateName, href: statePath(stateName) }, { label: cat.name }],
+      nav: 'find',
+      trail: [{ label: 'Find', href: '/find/' }, { label: cat.name, href: findPath(cat) }, { label: stateName }],
     };
     const sBody = `${stateFilterChips(byState.get(stateName), stateName, cat.slug)}
 ${listSection(sItems, { peers: byState.get(stateName), stateName, headingTag: 'h2' })}
@@ -1414,8 +1560,8 @@ const tokens = {
   '{{STAT_STATES}}': num(stateNames.length),
   '{{STAT_CITIES}}': num(byCity.size),
   '{{BLOG_CARDS}}': blogCards(posts),
-  '{{BLOG_CARDS_3}}': blogCards(posts.slice(0, 3)),
-  '{{BLOG_CARDS_6}}': blogCards(posts.slice(3, 9).length >= 3 ? posts.slice(3, 9) : posts.slice(0, 6)),
+  '{{BLOG_CARDS_3}}': blogCards(guidePosts.slice(0, 3)),
+  '{{BLOG_CARDS_6}}': blogCards(guidePosts.slice(3, 9).length >= 3 ? guidePosts.slice(3, 9) : guidePosts.slice(0, 6)),
   '{{STATE_TILES}}': stateTiles(),
   '{{STATE_LIST}}': stateNames.length
     ? `<ul class="state-list">\n${stateNames.map((st) => `  <li><a href="${statePath(st)}"><span>${esc(st)}</span><span class="state-list-n">${byState.get(st).length}</span></a></li>`).join('\n')}\n</ul>`
@@ -1423,7 +1569,7 @@ const tokens = {
   '{{STATS_TRACKING}}': hasData
     ? `Currently tracking <strong>${num(listings.length)}</strong> ice rinks across <strong>${num(stateNames.filter((st) => st !== 'District of Columbia').length)}</strong> states${byState.has('District of Columbia') ? ' plus DC' : ''} and <strong>${num(byCity.size)}</strong> cities.`
     : '',
-  '{{STAT_GUIDES}}': num(posts.length),
+  '{{STAT_GUIDES}}': num(guidePosts.length),
   '{{STATS_LINE}}': hasData
     ? `${num(listings.length)} ice rinks in ${num(stateNames.length)} ${plural(stateNames.length, 'state', 'states')}, across ${num(byCity.size)} ${plural(byCity.size, 'city', 'cities')}.`
     : 'State pages go live as soon as the first listings are published.',
@@ -1509,7 +1655,7 @@ for (const page of staticPages) {
     nav: '',
     trail: [{ label: 'Sitemap' }],
   };
-  const groups = ['Site', 'States', 'Find by type', 'Guides'];
+  const groups = ['Site', 'States', 'Find by type', 'Guides', 'Lists'];
   const cityGroups = stateNames.map((s) => `<h3><a href="${statePath(s)}">${esc(s)}</a></h3>\n${cityLinkGrid(s)}`).join('\n');
   const body = groups
     .map((g) => {
