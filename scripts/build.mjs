@@ -72,7 +72,8 @@ const DATA_DATE = importedAt ? importedAt.toISOString().slice(0, 10) : null;
 const DATA_DATE_LABEL = importedAt
   ? importedAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
   : null;
-const photoAgeDays = importedAt ? (NOW - importedAt) / 86400000 : Infinity;
+const photosFetchedAt = data.photosFetchedAt ? new Date(data.photosFetchedAt) : importedAt;
+const photoAgeDays = photosFetchedAt ? (NOW - photosFetchedAt) / 86400000 : Infinity;
 const photosFresh = photoAgeDays <= PHOTO_MAX_AGE_DAYS;
 if (!photosFresh) for (const l of listings) l.photo = null;
 
@@ -120,20 +121,28 @@ function fitTitle(...candidates) {
  * returning the first that fits (preferring more clauses). The check script
  * fails the build output if a page still ends up outside the range.
  */
-function fitDescription(lead, optional = []) {
-  const combos = [];
-  const k = Math.min(optional.length, 10);
-  for (let mask = 0; mask < 1 << k; mask++) {
-    let s = lead;
-    let count = 0;
-    for (let i = 0; i < k; i++) if (mask & (1 << i)) { s += ` ${optional[i]}`; count++; }
-    combos.push({ s, count });
+function fitDescription(leads, optional = []) {
+  const leadList = Array.isArray(leads) ? leads : [leads];
+  // Short closers that can always fill a gap of a few characters.
+  const opts = [...optional, ...SHORT_FILLERS].filter((v, i, a) => a.indexOf(v) === i).slice(0, 11);
+  for (const lead of leadList) {
+    const fits = [];
+    for (let mask = 0; mask < 1 << opts.length; mask++) {
+      let s = lead;
+      let count = 0;
+      for (let i = 0; i < opts.length; i++) if (mask & (1 << i)) { s += ` ${opts[i]}`; count++; }
+      if (s.length >= 150 && s.length <= 160) fits.push({ s, count });
+    }
+    // Prefer the page-specific clauses (earlier in the list) and fewer fillers.
+    if (fits.length) return fits.sort((a, b) => a.count - b.count || b.s.length - a.s.length)[0].s;
   }
-  const fits = combos.filter((c) => c.s.length >= 150 && c.s.length <= 160).sort((a, b) => b.count - a.count);
-  if (fits.length) return fits[0].s;
-  const under = combos.filter((c) => c.s.length <= 160).sort((a, b) => b.s.length - a.s.length);
-  return under.length ? under[0].s : lead.slice(0, 157).replace(/\s+\S*$/, '') + '.';
+  // Last resort: the shortest lead, cut at a sentence or word boundary.
+  const shortest = [...leadList].sort((a, b) => a.length - b.length)[0];
+  if (shortest.length <= 160) return shortest;
+  const cut = shortest.slice(0, 159);
+  return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,:;]$/, '') + '.';
 }
+const SHORT_FILLERS = ['Free to use.', 'Plan ahead.', 'Updated often.', 'Check before you go.', 'Go skate.'];
 
 /* ------------------------------------------------------------------ paths */
 
@@ -1212,8 +1221,13 @@ for (const l of listings) {
     path,
     title: fitTitle(`${l.name}, ${where}: Hours & Reviews`, `${l.name}, ${where}: Hours`, `${l.name}, ${where}`, `${l.name}, ${l.stateCode}`, l.name),
     description: fitDescription(
-      `${l.name} in ${where}: ${l.hours ? 'opening hours' : 'hours status'}, ${l.rating ? `${l.rating.toFixed(1)}-star rating from ${num(l.reviews || 0)} Google ${plural(l.reviews || 0, 'review', 'reviews')}` : 'reviews'}, address, phone and directions.`,
-      ['Check before you skate.', 'Plus nearby ice rinks.', 'Updated regularly.', `Updated ${YEAR}.`, 'Free to use.', 'Plan your visit.']
+      [
+        `${l.name} in ${where}: ${l.hours ? 'opening hours, ' : ''}${l.rating ? `${l.rating.toFixed(1)}-star rating from ${num(l.reviews || 0)} Google ${plural(l.reviews || 0, 'review', 'reviews')}` : 'Google listing'}, address, phone and directions.`,
+        `${l.name}, ${where}: ${l.hours ? 'hours, ' : ''}${l.rating ? `${l.rating.toFixed(1)}-star Google rating` : 'Google listing'}, address, phone and directions.`,
+        `${l.name}, ${l.stateCode}: ${l.hours ? 'hours, ' : ''}rating, address and directions.`,
+        `${l.name}: hours, rating and directions.`,
+      ],
+      ['Plus nearby ice rinks.', 'Check before you skate.', `Updated ${YEAR}.`]
     ),
     h1: l.name,
     lede: `${cap(venueNoun(l))} in ${esc(place)}`,
@@ -1339,7 +1353,7 @@ for (const { c: cat, n } of findCounts) {
     path,
     title: fitTitle(`${cat.name} Near Me: ${n} Ranked (${YEAR})`, `${cat.name} Near Me: ${n} Ranked`, `${cat.name} Near Me`),
     description: fitDescription(
-      `Find ${cat.plural} near you: ${n} across ${states.length} ${plural(states.length, 'state', 'states')}, ranked by Google reviews, with hours, phone numbers and directions.`,
+      `Find ${cat.plural} near you: ${num(n)} across ${states.length} ${plural(states.length, 'state', 'states')}, ranked by Google reviews, with hours, phone numbers and directions.`,
       [`Updated ${YEAR}.`, 'Free to use.', 'Check hours before you go.', 'Browse by state.', 'Plan your next skate.']
     ),
     h1: `${cat.name} Near Me`,

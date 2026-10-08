@@ -218,6 +218,29 @@ export function isIceVenue(row) {
   return false;
 }
 
+/**
+ * Outscraper's subtype filter returns every business with an "ice skating"
+ * subtype, which includes figure skating clubs, individual coaches and
+ * companies that build or service rinks. A rink directory lists places you
+ * can go and skate, so a row is kept only when its type, subtypes or name
+ * name a venue, and its primary type is not a service business.
+ */
+const VENUE_SIGNAL = /rink|arena|ice\s*(center|centre|house|plex|palace|den|gardens?|forum|complex|park|pavilion|oval|trail|ribbon)|iceplex|icehouse|ice\s*world|coliseum|colosseum|fieldhouse|sports\s*(complex|center|centre)|recreation|civic\s*center|community\s*center|\bpark\b|\bpond\b|\blake\b|plaza|resort/i;
+const SERVICE_TYPE = /office|contractor|manufactur|production|rental service|ticket|bathroom|restroom|snow removal|personal trainer|store|shop|supplier|repair|engineer/i;
+
+// Names that mark a coach, program or shop rather than a rink. Only applied
+// when Google's primary type is instructor or club: plenty of real rinks
+// carry "Ice skating instructor" as their first category.
+const PROGRAM_NAME = /coach|lessons?\b|learn\s*to\s*skate|academy|skate\s*school|skating\s*school|skatechnique|training|development|goaltending|sharpening|skate\s*shop|figure\s*skat\w*\s*(club|association)?|skating\s*association|speed\s*skating|\bstudio\b|\bwith\s+[A-Z][a-z]+$/i;
+
+export function venueRejection(row) {
+  const primary = String(row.type || row.category || '');
+  if (SERVICE_TYPE.test(primary)) return `service business (${primary})`;
+  if (/instructor|club/i.test(primary) && PROGRAM_NAME.test(String(row.name || ''))) return `coach, club or program (${primary})`;
+  if (!VENUE_SIGNAL.test([row.type, row.category, row.subtypes, row.name].filter(Boolean).join(' | '))) return `club or coach, not a venue (${primary || 'no type'})`;
+  return null;
+}
+
 /* ---------------------------------------------------------- feature tags -- */
 
 /**
@@ -272,7 +295,10 @@ export function normaliseListing(input, taken) {
   const about = parseAbout(input.about);
   const description = cleanField(input.description);
   const subtypes = cleanField(input.subtypes);
-  const category = cleanField(input.category) || cleanField(input.type);
+  // `type` is Google's primary category ("Ice skating rink", "Park");
+  // Outscraper's `category` is its own coarse group ("attractions"), so it is
+  // only a fallback.
+  const category = cleanField(input.type) || cleanField(input.category);
   const photosCount = Number(input.photos_count);
 
   return {
@@ -289,7 +315,7 @@ export function normaliseListing(input, taken) {
     state: STATES[stateCode],
     stateCode,
     postalCode: cleanField(input.postal_code || input.postalCode),
-    fullAddress: cleanField(input.full_address),
+    fullAddress: cleanField(input.full_address || input.address),
     lat,
     lng,
     phone: cleanField(input.phone),
@@ -312,7 +338,7 @@ export function normaliseListing(input, taken) {
     photo: cleanField(input.photo),
     photosCount: Number.isFinite(photosCount) && photosCount > 0 ? Math.round(photosCount) : null,
     mapsUrl: cleanField(input.location_link),
-    reviewsUrl: cleanField(input.reviews_link),
+    reviewsUrl: cleanField(input.reviews_link || input.location_reviews_link),
     placeId: cleanField(input.place_id),
     features: deriveFeatures([name, category, subtypes, description], about),
   };

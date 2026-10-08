@@ -22,7 +22,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normaliseListing, isIceVenue } from './lib/listings.mjs';
+import { normaliseListing, isIceVenue, venueRejection } from './lib/listings.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // LISTINGS_FILE lets a test import write somewhere other than the live dataset.
@@ -108,7 +108,7 @@ async function main() {
     rows = rows.concat(fileRows);
   }
 
-  const skipped = { closed: [], notIce: [], invalid: [], duplicate: [] };
+  const skipped = { closed: [], notIce: [], notVenue: [], invalid: [], duplicate: [] };
   const byKey = new Map();
 
   for (const row of rows) {
@@ -118,6 +118,11 @@ async function main() {
     }
     if (!keepAll && !isIceVenue(row)) {
       skipped.notIce.push(`${row.name} (${row.category || row.type || 'no category'})`);
+      continue;
+    }
+    const notVenue = keepAll ? null : venueRejection(row);
+    if (notVenue) {
+      skipped.notVenue.push(`${row.name}: ${notVenue}`);
       continue;
     }
     const key = String(row.place_id || row.google_id || `${row.name}|${row.latitude}|${row.longitude}`).trim();
@@ -141,9 +146,19 @@ async function main() {
   }
   listings.sort((a, b) => a.state.localeCompare(b.state) || (a.city || '').localeCompare(b.city || '') || a.name.localeCompare(b.name));
 
+  // Photo URLs start expiring from when Outscraper fetched them, not from
+  // this import. Outscraper names exports Outscraper-YYYYMMDDHHMMSS...; use
+  // the oldest such timestamp across the files, else now.
+  const stamps = files
+    .map((f) => (f.match(/(20\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/) || []).slice(1))
+    .filter((m) => m.length === 6)
+    .map(([y, mo, d, h, mi, se]) => new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +se)))
+    .filter((d) => !Number.isNaN(d.getTime()) && d <= new Date());
+  const photosFetchedAt = (stamps.length ? new Date(Math.min(...stamps)) : new Date()).toISOString();
+
   writeFileSync(
     DATA_FILE,
-    `${JSON.stringify({ source: 'outscraper', importedAt: new Date().toISOString(), count: listings.length, listings }, null, 2)}\n`
+    `${JSON.stringify({ source: 'outscraper', importedAt: new Date().toISOString(), photosFetchedAt, count: listings.length, listings }, null, 2)}\n`
   );
 
   console.log(`\nImported ${listings.length} listings across ${new Set(listings.map((l) => l.state)).size} states.`);
@@ -155,6 +170,7 @@ async function main() {
   };
   report('permanently closed', skipped.closed);
   report('not ice venues (use --keep-all to keep)', skipped.notIce);
+  report('clubs, coaches and service businesses (use --keep-all to keep)', skipped.notVenue);
   report('missing name, coordinates, US state or city', skipped.invalid);
   report('duplicates', skipped.duplicate);
   console.log('\nNow run: npm run build');

@@ -18,7 +18,7 @@ Deploy `dist/` to any static host. `vercel.json` and `netlify.toml` already set 
 
 ## Where the real listing data goes
 
-`data/listings.json` ships **empty on purpose**. There is no placeholder data. With zero listings the build still runs end to end. The homepage, guides and legal pages are published. Data-dependent hubs (`/states/`, `/map/`, `/find/`) render an honest "being compiled" notice and are marked `noindex` until rinks exist.
+`data/listings.json` holds the live dataset: 1,840 rinks from the October 7, 2026 Outscraper export. There has never been placeholder data. With zero listings the build still runs end to end. The homepage, guides and legal pages are published. Data-dependent hubs (`/states/`, `/map/`, `/find/`) render an honest "being compiled" notice and are marked `noindex` until rinks exist.
 
 To publish rinks, drop in the Outscraper export:
 
@@ -32,7 +32,8 @@ git add data/listings.json && git commit -m "Import Outscraper listings"
 The import **replaces** `data/listings.json`. It:
 
 - drops `CLOSED_PERMANENTLY` rows and keeps `CLOSED_TEMPORARILY` rows, which the page labels as temporarily closed
-- drops roller rinks, skate shops and ice-cream parlours that "ice skating rink" searches pull in (`isIceVenue()` in `scripts/lib/listings.mjs`). Pass `--keep-all` to skip this filter.
+- drops roller rinks, skate shops and ice-cream parlours that "ice skating rink" searches pull in (`isIceVenue()` in `scripts/lib/listings.mjs`)
+- drops figure skating clubs, coaches, academies and rink service companies, which Outscraper's "ice skating" subtype filter returns alongside real rinks (`venueRejection()`). Real rinks whose first Google category happens to be "Ice skating instructor" are kept. Pass `--keep-all` to skip both filters.
 - drops rows with no name, coordinates, US state or city, and reports every skipped row
 - de-duplicates on `place_id`
 - maps Outscraper's literal `None` / `N/A` placeholders to null, so they are never published
@@ -45,7 +46,7 @@ Recognised Outscraper columns: `name`, `category`, `type`, `subtypes`, `descript
 
 Outscraper's `photo` URLs (`lh3.googleusercontent.com`) are signed and stop working after about four weeks. The site handles this two ways:
 
-1. The build reads `importedAt` from `data/listings.json`. Once the import is more than 25 days old (`PHOTO_MAX_AGE_DAYS`), it stops using remote photos, and every image renders a local illustration from `src/assets/img/fallbacks/`.
+1. The import records when Outscraper fetched the photos (`photosFetchedAt`, read from the `Outscraper-YYYYMMDDHHMMSS` export filename, or the import time if the name has no timestamp). The build reads it. Once the import is more than 25 days old (`PHOTO_MAX_AGE_DAYS`), it stops using remote photos, and every image renders a local illustration from `src/assets/img/fallbacks/`.
 2. Every remote `<img>` carries an `onerror` that swaps to the same local fallback. A photo that dies early therefore never shows as a broken image.
 
 Re-run the import at least monthly to keep real photos on the pages.
@@ -162,7 +163,7 @@ They stay off until you create ad units in AdSense and paste their IDs into `AD_
 
 ## Before going live
 
-- [ ] Run the Outscraper import and commit `data/listings.json`
+- [x] Run the Outscraper import and commit `data/listings.json` (1,840 rinks from the 2026-10-07 export)
 - [ ] Create AdSense ad units and fill in `AD_SLOTS`
 - [ ] Set up the `hello@iceskatingnearyou.com` mailbox (`CONTACT_EMAIL` in `scripts/build.mjs`)
 - [ ] Claim the social handles, or change `SOCIAL` in `scripts/build.mjs`
