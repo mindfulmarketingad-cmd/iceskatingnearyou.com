@@ -57,7 +57,7 @@
         var near = rinks.slice(0, 12);
         list.innerHTML = near.map(function (k) {
           return '<article class="card rink-card"><a class="card-media" href="' + esc(k.u) + '" tabindex="-1" aria-hidden="true">' +
-            '<img src="' + esc(k.i) + '" alt="" width="480" height="300" loading="lazy" onerror="this.onerror=null;this.src=\'' + esc(k.f) + '\'"></a>' +
+            '<img src="' + esc(k.i) + '" alt="' + esc('Illustration representing ' + k.n + ' in ' + k.c) + '" width="480" height="300" loading="lazy" decoding="async"></a>' +
             '<div class="card-body"><h3><a href="' + esc(k.u) + '">' + esc(k.n) + '</a></h3>' +
             '<p class="card-place">' + esc(k.c) + ' <span class="card-miles">' + (k.d < 1 ? 'under 1' : Math.round(k.d)) + ' mi away</span></p>' +
             '<p class="card-rating">' + (k.r ? k.r.toFixed(1) + ' rating' + (k.v ? ' (' + k.v.toLocaleString('en-US') + ')' : '') : 'No rating yet') + '</p></div></article>';

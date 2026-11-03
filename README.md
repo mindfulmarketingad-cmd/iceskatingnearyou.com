@@ -4,6 +4,8 @@ A directory of public ice skating rinks across the United States. The main keywo
 
 The site is fully static: one generator script (`scripts/build.mjs`) reads `data/listings.json` and the page sources in `src/`, then writes every page to `dist/`. There is no server rendering, no ISR and nothing runs per request. The architecture copies the pumpkinpatchesnearme.com generator.
 
+The primary host is `https://www.iceskatingnearyou.com`. The apex redirects to www, and every canonical, Open Graph URL, JSON-LD URL, and sitemap location uses the www host.
+
 ```bash
 npm install          # only needed for the XLSX importer and the one-off asset scripts
 npm run build        # generate dist/
@@ -32,7 +34,7 @@ git add data/listings.json && git commit -m "Import Outscraper listings"
 The import **replaces** `data/listings.json`. It:
 
 - drops `CLOSED_PERMANENTLY` rows and keeps `CLOSED_TEMPORARILY` rows, which the page labels as temporarily closed
-- drops roller rinks, skate shops and ice-cream parlours that "ice skating rink" searches pull in (`isIceVenue()` in `scripts/lib/listings.mjs`)
+- drops roller rinks, skate shops, ice-cream parlours, pro shops, sharpening shops, bars, and coaches that "ice skating rink" searches pull in (`isIceVenue()` and `nonVenueReason()` in `scripts/lib/listings.mjs`, plus `data/blocklist.json`)
 - drops figure skating clubs, coaches, academies and rink service companies, which Outscraper's "ice skating" subtype filter returns alongside real rinks (`venueRejection()`). Real rinks whose first Google category happens to be "Ice skating instructor" are kept. Pass `--keep-all` to skip both filters.
 - drops rows with no name, coordinates, US state or city, and reports every skipped row
 - de-duplicates on `place_id`
@@ -42,14 +44,11 @@ Recognised Outscraper columns: `name`, `category`, `type`, `subtypes`, `descript
 
 **Nothing is invented.** A missing field is shown as "Not listed" or explained in a sentence ("No opening hours are listed, so check the rink's schedule"). Rink summaries only restate fields from the listing. Feature tags (indoor, outdoor, hockey, lessons, rentals and so on) are applied only when the rink's own name, category, subtypes or description says so, or when Google's `about` attributes do.
 
-### Google photo URLs expire
+### Listing photos are illustrations
 
-Outscraper's `photo` URLs (`lh3.googleusercontent.com`) are signed and stop working after about four weeks. The site handles this two ways:
+Outscraper's `photo` URLs (`lh3.googleusercontent.com`) are signed, expire after a few weeks, and are not a license to hotlink Google imagery. The build never writes those URLs into HTML, JSON-LD, or `dist/data`. Every rink card uses an illustration from `src/assets/img/fallbacks/`, chosen stably from the rink slug.
 
-1. The import records when Outscraper fetched the photos (`photosFetchedAt`, read from the `Outscraper-YYYYMMDDHHMMSS` export filename, or the import time if the name has no timestamp). The build reads it. Once the import is more than 25 days old (`PHOTO_MAX_AGE_DAYS`), it stops using remote photos, and every image renders a local illustration from `src/assets/img/fallbacks/`.
-2. Every remote `<img>` carries an `onerror` that swaps to the same local fallback. A photo that dies early therefore never shows as a broken image.
-
-Re-run the import at least monthly to keep real photos on the pages.
+`photo` and `photosFetchedAt` stay on the import so a future photo pipeline can use them as a reference. They are not published. A long-term source is rink-submitted or otherwise licensed photos stored in this repo (or object storage), keyed by `place_id`. Do not turn the Google URLs back on.
 
 ---
 
@@ -68,6 +67,10 @@ Re-run the import at least monthly to keep real photos on the pages.
 /map/   /map/<state>/              Leaflet maps             src/pages/map.html + generated
 /search/                           client-side search       src/pages/search.html
 /blog/  /blog/<post>/              informational guides     src/pages/blog.html + src/pages/blog/*.html
+/<state>/<city>/<topic>/      city topics              indoor, outdoor, hockey, lessons, figure, late, weekends (3+ rinks)
+/open/late/  /open/weekends/   hours hubs               national, plus one page per state with 3+ qualifying rinks
+/near/  /near/<metro>/         30-mile metro hubs       major downtowns with 3+ rinks inside the circle
+/near/<metro>/christmas-ice-skating/   outdoor and seasonal rinks in that circle
 /about/ /contact/ /disclaimer/ /privacy/ /terms/ /sitemap/
 /sitemap.xml /robots.txt /ads.txt /site.webmanifest /404.html
 ```
@@ -94,10 +97,7 @@ Links run Home > Hub > Individual, and every page links back up through breadcru
 
 Titles lead with the generic head term ("Ice Skating Near Me: 24 Best Rinks in Ohio (2026)"), because Google matches these hubs to "ice skating near me" by the searcher's location.
 
-The blog holds two kinds of post:
-
-- **Guides** (`src/pages/blog/*.html`, hand-written): informational questions only, such as technique, gear, safety and how rinks work.
-- **Lists** (generated): "[x] Best [type] in [State] [Year] List", one per state for all rinks plus one per rink type with at least 3 tagged rinks in that state (`LIST_TYPES` / `LIST_POST_MIN` in `scripts/build.mjs`; type nouns are `postNoun` in `src/data/categories.json`). The title tag and H1 are the same string. URLs leave out the count and year (`/blog/best-hockey-rinks-in-minnesota/`) so they stay stable. Wheelchair access has no list because nearly every rink carries it. These target the same local searches as the state pages, so every list links prominently to its state page and type page.
+The blog holds hand-written guides only (`src/pages/blog/*.html`): technique, gear, safety, and how rinks work. Generated "[x] Best [type] in [State]" posts used to target the same queries as `/states/` and `/find/`. They are no longer built. `vercel.json` 301s each old `/blog/best-*-in-<state>/` URL to that state's page.
 
 ### Featured rinks
 
@@ -183,5 +183,5 @@ They stay off until you create ad units in AdSense and paste their IDs into `AD_
 - [ ] Set up the `hello@iceskatingnearyou.com` mailbox (`CONTACT_EMAIL` in `scripts/build.mjs`)
 - [ ] Claim the social handles, or change `SOCIAL` in `scripts/build.mjs`
 - [ ] Fill in the governing-law `[STATE]` placeholder in `src/pages/terms.html`
-- [ ] Submit `https://iceskatingnearyou.com/sitemap.xml` in Search Console
-- [ ] Re-import at least every 25 days to keep listing photos fresh
+- [ ] Submit `https://www.iceskatingnearyou.com/sitemap.xml` in Search Console (www is the primary host; the apex 301s to it)
+- [ ] Add licensed rink photos later. Do not hotlink Google photo URLs

@@ -19,18 +19,28 @@
  *   /map/   /map/<state>/               Leaflet maps
  *   /search/                            client-side search
  *   /blog/  /blog/<post>/               informational guides only
+ *   /<state>/<city>/<topic>/           city topic pages (indoor, outdoor, hockey, lessons, figure)
+ *   /open/late/  /open/weekends/        hours hubs, national and per state
+ *   /near/  /near/<metro>/              rinks within 30 miles of a major downtown
+ *   /near/<metro>/christmas-ice-skating/
+ *
+ * Old "/blog/best-*-in-<state>/" list posts are not generated. They 301 to
+ * the state page from vercel.json so they stop competing with /states/ and /find/.
  */
 import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { slugify, STATES, STATE_NEIGHBORS, DAYS, distanceMiles } from './lib/listings.mjs';
+import { slugify, STATES, STATE_NEIGHBORS, DAYS, distanceMiles, nonVenueReason } from './lib/listings.mjs';
+import { buildTopicPages } from './lib/topics.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
 const DIST = join(ROOT, 'dist');
 const DATA_FILE = process.env.LISTINGS_FILE ? resolve(process.env.LISTINGS_FILE) : join(ROOT, 'data/listings.json');
 
-const SITE_URL = 'https://iceskatingnearyou.com';
+// www is the primary host. The apex 301s to www, so every absolute URL
+// (canonical, og:url, JSON-LD, sitemap, robots) must use this host.
+const SITE_URL = 'https://www.iceskatingnearyou.com';
 const SITE_NAME = 'Ice Skating Near You';
 const CONTACT_EMAIL = 'hello@iceskatingnearyou.com';
 const SOCIAL = {
@@ -56,26 +66,36 @@ const AD_SLOTS = {
 };
 const AD_INFEED_LAYOUT_KEY = process.env.ADSENSE_INFEED_LAYOUT_KEY || '';
 
-/* Google listing photos (lh3.googleusercontent.com) are signed URLs that stop
-   working after roughly four weeks. Past this age the build stops using them
-   and every image falls back to the local illustrations; re-run the import
-   to get fresh URLs. Every <img> also swaps to the fallback on error. */
-const PHOTO_MAX_AGE_DAYS = 25;
+/* Listing photos from Google are signed lh3.googleusercontent.com URLs.
+   They expire, and hotlinking them is not a licensed photo source. The
+   build never emits those URLs. Cards use the site's own illustrations in
+   src/assets/img/fallbacks/ until rink-owned or licensed photos exist. */
 const FALLBACK_IMAGES = [1, 2, 3, 4].map((n) => `/assets/img/fallbacks/rink-${n}.svg`);
+const RICH_ENTRY_LIMIT = 24;
 
 /* ------------------------------------------------------------------ inputs */
 
 const data = JSON.parse(readFileSync(DATA_FILE, 'utf8'));
-const listings = (data.listings || []).filter((l) => l && l.name && l.state && l.city && Number.isFinite(l.lat) && Number.isFinite(l.lng));
+const blocklist = existsSync(join(ROOT, 'data/blocklist.json'))
+  ? JSON.parse(readFileSync(join(ROOT, 'data/blocklist.json'), 'utf8'))
+  : { ids: [], names: [] };
+const droppedNonVenues = [];
+const listings = (data.listings || []).filter((l) => {
+  if (!l || !l.name || !l.state || !l.city || !Number.isFinite(l.lat) || !Number.isFinite(l.lng)) return false;
+  const reason = nonVenueReason(l, blocklist);
+  if (reason) {
+    droppedNonVenues.push(`${l.name} (${l.city}, ${l.stateCode}): ${reason}`);
+    return false;
+  }
+  // Never publish a Google photo URL, even if a template reads `photo`.
+  l.photo = null;
+  return true;
+});
 const importedAt = data.importedAt ? new Date(data.importedAt) : null;
 const DATA_DATE = importedAt ? importedAt.toISOString().slice(0, 10) : null;
 const DATA_DATE_LABEL = importedAt
   ? importedAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
   : null;
-const photosFetchedAt = data.photosFetchedAt ? new Date(data.photosFetchedAt) : importedAt;
-const photoAgeDays = photosFetchedAt ? (NOW - photosFetchedAt) / 86400000 : Infinity;
-const photosFresh = photoAgeDays <= PHOTO_MAX_AGE_DAYS;
-if (!photosFresh) for (const l of listings) l.photo = null;
 
 const categories = JSON.parse(readFileSync(join(SRC, 'data/categories.json'), 'utf8'));
 /* Featured partners: rinks listed by place_id or slug in data/featured.json
@@ -314,22 +334,46 @@ function openingHoursSpec(hours) {
   }));
 }
 
+/** True when a single hours window closes at 9:00 PM or later, or runs past midnight. */
+function windowClosesLate(win) {
+  if (/open 24 hours/i.test(win)) return true;
+  const parts = String(win).split(/\s*-\s*/);
+  if (parts.length < 2) return false;
+  const endRaw = parts[parts.length - 1];
+  const end = parseClock(endRaw);
+  if (!end) return false;
+  if (end.h >= 21) return true;
+  // "6PM-12AM" parses as midnight. "8PM-1AM" is open past midnight.
+  if (/am/i.test(endRaw) && /pm/i.test(parts[0])) return true;
+  return false;
+}
+
+/** Listed hours close at 9:00 PM or later, or stay open past midnight, on any day. */
+function closesLate(l) {
+  if (!l.hours) return false;
+  return DAYS.some((day) => {
+    const value = l.hours[day];
+    if (!value || isClosed(value)) return false;
+    return String(value).split(/\s*\/\s*|,\s*/).some(windowClosesLate);
+  });
+}
+
+/** Both Saturday and Sunday publish hours that are not marked closed. */
+function openOnWeekend(l) {
+  if (!l.hours) return false;
+  return ['saturday', 'sunday'].every((day) => l.hours[day] && !isClosed(l.hours[day]));
+}
+
 /* ----------------------------------------------------------------- images */
 
 const fallbackFor = (l) => FALLBACK_IMAGES[seededHash(l.slug || l.name) % FALLBACK_IMAGES.length];
 const IMAGE_SIZES = { thumb: [320, 200], card: [480, 300], hero: [960, 540] };
 
-function resizedPhotoUrl(url, w, h) {
-  if (!url || !url.includes('googleusercontent.com')) return url;
-  return /=w\d+-h\d+/.test(url) ? url.replace(/=w\d+-h\d+[^&]*$/, `=w${w}-h${h}-k-no`) : url;
-}
-
 function listingImage(l, { size = 'card', className = '', eager = false } = {}) {
   const [w, h] = IMAGE_SIZES[size];
-  const fallback = fallbackFor(l);
-  const src = l.photo ? resizedPhotoUrl(l.photo, w, h) : fallback;
-  const alt = l.photo ? `${l.name} in ${l.city}, ${l.stateCode}` : '';
-  return `<img class="${className}" src="${attr(src)}" alt="${attr(alt)}" width="${w}" height="${h}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"${l.photo ? ` referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${fallback}';this.alt='';var c=this.closest('figure');if(c&&c.querySelector('figcaption'))c.querySelector('figcaption').textContent='Illustration. No current photo is available for this rink.';"` : ''}>`;
+  const src = fallbackFor(l);
+  const alt = `Illustration representing ${l.name} in ${l.city}, ${l.state}`;
+  return `<img class="${className}" src="${attr(src)}" alt="${attr(alt)}" width="${w}" height="${h}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
 }
 
 /* -------------------------------------------------------------------- ads */
@@ -556,18 +600,35 @@ function renderEntry(l, position, { stateName, headingTag = 'h3', peers = null, 
 </li>`;
 }
 
-/** Ranked list with in-feed ads after #3, #8 and then every 10 entries. */
+/** Compact row: name, place, and rating, with the same filter data attributes. */
+function renderCompactEntry(l, position) {
+  return `<li class="entry entry-compact" id="${attr(l.anchor)}" data-lat="${l.lat}" data-lng="${l.lng}" data-rank="${position}" data-name="${attr(l.name.toLowerCase())}" data-city="${attr(l.city.toLowerCase())}" data-types="${attr((l.features || []).map((f) => catByFeature.get(f)?.slug).filter(Boolean).join(' '))}" data-rating="${l.rating || 0}" data-reviews="${l.reviews || 0}">
+  <span class="entry-rank" aria-hidden="true">${position}</span>
+  <div class="entry-body">
+    <h3 class="entry-title"><a href="${l.url}">${esc(l.name)}</a></h3>
+    <p class="entry-line">${l.rating ? `${stars(l.rating)} <b>${l.rating.toFixed(1)}</b>` : '<span class="missing">No rating yet</span>'}${l.reviews ? ` <span class="entry-reviews">${num(l.reviews)} ${plural(l.reviews, 'review', 'reviews')}</span>` : ''} <span aria-hidden="true">&middot;</span> <a href="${cityPath(l.state, l.city)}">${esc(l.city)}</a>, ${esc(l.stateCode)}<span class="entry-distance" hidden></span></p>
+  </div>
+</li>`;
+}
+
+/** Ranked list with in-feed ads after #3, #8 and then every 10 entries.
+ *  Long lists keep full cards (and images) for the top slice only. The rest
+ *  are compact links so a state page does not ship hundreds of images. */
 function entryList(items, opts) {
+  const richLimit = opts.richLimit ?? (items.length > 30 ? RICH_ENTRY_LIMIT : items.length);
   const parts = [];
   items.forEach((l, i) => {
-    parts.push(renderEntry(l, i + 1, opts));
+    parts.push(i < richLimit ? renderEntry(l, i + 1, opts) : renderCompactEntry(l, i + 1));
     const n = i + 1;
-    if (n < items.length && (n === 3 || n === 8 || (n > 8 && (n - 8) % 10 === 0))) {
+    if (n < items.length && n <= richLimit && (n === 3 || n === 8 || (n > 8 && (n - 8) % 10 === 0))) {
       const ad = renderAdSlot('inFeed');
       if (ad) parts.push(`<li class="entry-ad">${ad}</li>`);
     }
   });
-  return `<ol class="entries" data-sortable>\n${parts.join('\n')}\n</ol>`;
+  const note = items.length > richLimit
+    ? `<p class="data-note">The first ${richLimit} rinks include hours and details. The other ${items.length - richLimit} are listed as links so this page stays fast. Every rink has its own page.</p>`
+    : '';
+  return `${note}<ol class="entries" data-sortable>\n${parts.join('\n')}\n</ol>`;
 }
 
 function renderCard(l, { miles = null, badge = '' } = {}) {
@@ -835,6 +896,10 @@ function render(meta, body, opts = {}) {
   const replacements = {
     '{{TITLE}}': esc(meta.title),
     '{{DESCRIPTION}}': attr(meta.description),
+    '{{OG_TITLE}}': esc(meta.ogTitle || meta.title),
+    '{{OG_DESCRIPTION}}': attr(meta.ogDescription || meta.description),
+    '{{OG_IMAGE}}': meta.ogImage || `${SITE_URL}/assets/img/og-image.jpg`,
+    '{{OG_IMAGE_ALT}}': attr(meta.ogImageAlt || meta.ogTitle || meta.title),
     '{{CANONICAL}}': SITE_URL + meta.path,
     '{{ROBOTS}}': meta.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1',
     '{{SITE_URL}}': SITE_URL,
@@ -940,7 +1005,7 @@ for (const post of guidePosts) {
     trail: [{ label: 'Blog', href: '/blog/' }, { label: meta.h1 || meta.title }],
   };
   const dateLabel = new Date(`${meta.date}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-  const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="" width="800" height="500" fetchpriority="high"></figure>
+  const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="Cover image: ${attr(post.meta.h1 || post.meta.title)}" width="800" height="500" fetchpriority="high"></figure>
 <p class="byline">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabel}</time> <span aria-hidden="true">&middot;</span> ${esc(meta.readingTime || '')}</p>
 ${toc}
 ${injectArticleAds(html)}
@@ -965,145 +1030,10 @@ ${related.length ? `<aside class="related"><h2>Keep reading</h2>${guideLinks(rel
   pageIndex.push({ path, title: meta.h1 || meta.title, group: 'Guides' });
 }
 
-/* --- generated "[x] Best [type] in [State] [Year] List" posts -------------
-   One post per state for all rinks, plus one per rink type that has at
-   least LIST_POST_MIN tagged rinks in that state. Title tag and H1 are the
-   same string. URLs leave out the count and year so they stay stable as
-   the data and the calendar change. Wheelchair access is skipped: nearly
-   every rink carries it, so its list would duplicate the all-rinks one. */
-const LIST_POST_MIN = 3;
-const LIST_POST_MAX = 10;
-const LIST_TYPES = [
-  { noun: 'Ice Skating Rinks', filter: () => true, cat: null },
-  ...categories.filter((c) => c.postNoun).map((c) => ({ noun: c.postNoun, filter: (l) => hasFeature(l, c), cat: c })),
-];
-const listPostsByState = new Map(); // stateName -> [post]
-const LIST_DATE = DATA_DATE || BUILD_DATE;
+/* Generated "best rinks in [state]" posts used to be built here. They
+   targeted the same queries as the state pages and /find/ pages, so they
+   are no longer published. vercel.json 301s each old URL to its state page. */
 
-const listPlans = [];
-for (const stateName of stateNames) {
-  for (const type of LIST_TYPES) {
-    const all = rank(byState.get(stateName).filter(type.filter));
-    if (all.length < LIST_POST_MIN) continue;
-    const top = all.slice(0, LIST_POST_MAX);
-    const title = `${top.length} Best ${type.noun} in ${stateName} ${YEAR} List`;
-    const slug = `best-${slugify(type.noun)}-in-${stateSlug(stateName)}`;
-    const lower = type.noun.toLowerCase();
-    const post = {
-      file: slug,
-      generated: true,
-      path: postPath(slug),
-      meta: {
-        slug,
-        title,
-        h1: title,
-        date: LIST_DATE,
-        excerpt: `The ${top.length} best ${lower} in ${stateName}, ranked by Google rating and review volume: ${joinNatural(top.slice(0, 3).map((l) => l.name))}${top.length > 3 ? ' and more' : ''}.`,
-        description: fitDescription(
-          [
-            `The ${top.length} best ${lower} in ${stateName} for ${YEAR}, ranked by Google reviews: ${top[0].name}, ${top[1].name} and more, with hours and directions.`,
-            `The ${top.length} best ${lower} in ${stateName} for ${YEAR}, ranked by Google reviews: ${top[0].name} and more, with hours and directions.`,
-            `The ${top.length} best ${lower} in ${stateName} for ${YEAR}, ranked by Google rating and reviews, with hours, phone numbers, addresses and directions.`,
-          ],
-          ['Updated for the season.', 'Check hours before you go.']
-        ),
-      },
-      stateName,
-      type,
-      all,
-      top,
-    };
-    listPlans.push(post);
-    if (!listPostsByState.has(stateName)) listPostsByState.set(stateName, []);
-    listPostsByState.get(stateName).push(post);
-  }
-}
-
-for (const post of listPlans) {
-  const { meta, stateName, type, all, top } = post;
-  const lower = type.noun.toLowerCase();
-  const x = top.length;
-  const n = all.length;
-  const stateItems = byState.get(stateName);
-  const typePage = type.cat ? findPageFor(type.cat, stateName) : null;
-  const sunday = top.filter((l) => l.hours && l.hours.sunday && !isClosed(l.hours.sunday));
-  const cities = new Set(all.map((l) => l.city)).size;
-  const siblings = (listPostsByState.get(stateName) || []).filter((p) => p !== post);
-
-  const faqItems = [
-    top[0].rating
-      ? { q: `What is the best place for ${lower} in ${stateName}?`, a: `${top[0].name} in ${top[0].city} ranks first, with a ${top[0].rating.toFixed(1)} Google rating from ${num(top[0].reviews || 0)} ${plural(top[0].reviews || 0, 'review', 'reviews')}.` }
-      : null,
-    { q: `How many ${lower} are there in ${stateName}?`, a: `We list ${n} in ${cities} ${plural(cities, 'city', 'cities')} across ${stateName}. This post covers the top ${x}; the full list is on our ${stateName} page.` },
-    {
-      q: `Which of these are open on Sundays?`,
-      a: sunday.length
-        ? `${sunday.length} of the ${x} list Sunday hours on Google: ${joinNatural(sunday.slice(0, 4).map((l) => l.name))}${sunday.length > 4 ? ' and others' : ''}. Public session times inside those hours vary, so check each rink's schedule.`
-        : `None of the ${x} rinks on this list show Sunday hours on Google right now. Hours change with the season, so check with the rink directly.`,
-    },
-    { q: 'How did you rank these?', a: `By Google rating weighted by review volume, as of ${DATA_DATE_LABEL}. A rink with hundreds of consistent reviews outranks one with a few perfect scores. No rink pays to be listed or ranked.` },
-  ].filter(Boolean);
-
-  const bodyHtml = `<p>${n > x
-    ? `We list ${n} ${lower} in ${esc(stateName)}. These are the ${x} with the strongest Google ratings once review volume is taken into account`
-    : `We list ${n} ${lower} in ${esc(stateName)}, and all ${n} are here, ranked by Google rating with review volume taken into account`}, so a rink with hundreds of consistent reviews outranks one with a handful of perfect scores. Every entry shows the hours, address, phone number and website from the rink's own Google listing as of ${DATA_DATE_LABEL}.</p>
-<p>${n > x ? `Want every option, not just the top ${x}?` : 'Want to compare them with the rest?'} See <a href="${statePath(stateName)}">all ${stateItems.length} ice rinks in ${esc(stateName)}</a>${typePage && n > x ? `, or <a href="${typePage}">all ${n} ${esc(lower)} in ${esc(stateName)}</a>` : ''}, ranked the same way with filters and a map.</p>
-<h2>The list at a glance</h2>
-<ol class="glance-list">
-${top.map((l) => `  <li><a href="#${attr(l.anchor)}">${esc(l.name)}</a> <span>${esc(l.city)}${l.rating ? ` &middot; ${l.rating.toFixed(1)}` : ''}</span></li>`).join('\n')}
-</ol>
-<h2>The ${x} best ${esc(lower)} in ${esc(stateName)}</h2>
-${entryList(top, { stateName, peers: stateItems, detail: true })}
-<h2>How we ranked them</h2>
-<p>Each rink's position comes from its Google rating, weighted by how many reviews sit behind it. A 4.7 from several hundred skaters is a steadier signal than a 5.0 from three, so it ranks higher. Rinks with no rating at all come last.</p>
-<p>${type.cat ? `A rink appears here when its own Google listing says it offers this, so the list is a starting point rather than the full picture. A rink that offers it without saying so will not show up.` : `The list covers public ice venues of every kind: indoor arenas, outdoor and seasonal rinks, and community rinks. Clubs, coaches and rink service companies are left out.`} Nobody pays to be listed or ranked.</p>
-<h2>Before you go</h2>
-<p>Rinks share their ice between public skating, hockey, figure skating and lessons, so a rink can be open all day with only a few hours of public skate. Check the session calendar on the rink's website or call ahead, especially on holidays and school breaks.</p>
-<p>New to the ice? Read <a href="/blog/how-to-ice-skate-for-beginners/">how to ice skate for the first time</a>, <a href="/blog/what-to-wear-ice-skating/">what to wear</a> and <a href="/blog/how-should-ice-skates-fit/">how skates should fit</a>.</p>
-${faqBlock(faqItems)}
-<h2>More ${esc(stateName)} ice skating lists</h2>
-<ul class="plain-links">
-${siblings.map((p) => `  <li><a href="${p.path}">${esc(p.meta.h1)}</a></li>`).join('\n')}
-  <li><a href="${statePath(stateName)}">All ${stateItems.length} ice rinks in ${esc(stateName)}</a></li>
-  <li><a href="${mapStatePath(stateName)}">Map of ${esc(stateName)} ice rinks</a></li>
-</ul>`;
-
-  const words = stripTags(bodyHtml).split(/\s+/).filter(Boolean).length;
-  meta.readingTime = `${Math.max(2, Math.round(words / 230))} min read`;
-  const { toc, html } = autoToc(bodyHtml);
-  const pageMeta = {
-    ...meta,
-    path: post.path,
-    layout: 'prose',
-    nav: 'blog',
-    ogType: 'article',
-    featuredState: stateName,
-    trail: [{ label: 'Blog', href: '/blog/' }, { label: stateName, href: statePath(stateName) }, { label: meta.h1 }],
-  };
-  const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="" width="800" height="500" fetchpriority="high"></figure>
-<p class="byline">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabelFor(meta.date)}</time> <span aria-hidden="true">&middot;</span> ${meta.readingTime}</p>
-${toc}
-${injectArticleAds(html)}`;
-  const jsonld = [
-    {
-      '@type': 'BlogPosting',
-      headline: meta.h1,
-      description: meta.description,
-      datePublished: meta.date,
-      dateModified: meta.date,
-      mainEntityOfPage: SITE_URL + post.path,
-      image: SITE_URL + postImage(post),
-      author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
-      publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/img/icon-512.png` } },
-    },
-    itemListJsonLd(top),
-    faqJsonLd(faqItems),
-  ];
-  writePage(post.path, render(pageMeta, body, { jsonld, scripts: listToolScripts() }));
-  addToSitemap(post.path, '0.6', meta.date);
-  pageIndex.push({ path: post.path, title: meta.h1, group: 'Lists' });
-  posts.push(post);
-}
 posts.sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || '') || a.meta.title.localeCompare(b.meta.title));
 
 
@@ -1111,7 +1041,7 @@ function blogCards(list) {
   if (!list.length) return '<p>Guides are on the way.</p>';
   return `<div class="post-grid">
 ${list.map((p) => `  <article class="card post-card">
-    <a class="card-media" href="${p.path}" tabindex="-1" aria-hidden="true"><img src="${postImage(p)}" alt="" width="800" height="500" loading="lazy" decoding="async"></a>
+    <a class="card-media" href="${p.path}" tabindex="-1" aria-hidden="true"><img src="${postImage(p)}" alt="Cover image: ${attr(p.meta.h1 || p.meta.title)}" width="800" height="500" loading="lazy" decoding="async"></a>
     <div class="card-body">
       <p class="eyebrow">Guide <span aria-hidden="true">&middot;</span> ${esc(p.meta.readingTime || '')}</p>
       <h3><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a></h3>
@@ -1152,7 +1082,7 @@ function stateTiles() {
   return `<ul class="state-tiles">
 ${Object.values(STATES).sort().map((s) => {
     const n = byState.has(s) ? byState.get(s).length : 0;
-    const inner = `<img src="/assets/img/states/${stateSlug(s)}.svg" alt="" width="64" height="64" loading="lazy"><b>${esc(s)}</b><span>${n ? `${n} ${plural(n, 'rink', 'rinks')}` : 'Coming soon'}</span>`;
+    const inner = `<img src="/assets/img/states/${stateSlug(s)}.svg" alt="Outline map of ${esc(s)}" width="64" height="64" loading="lazy"><b>${esc(s)}</b><span>${n ? `${n} ${plural(n, 'rink', 'rinks')}` : 'Coming soon'}</span>`;
     return `  <li>${n ? `<a class="state-tile" href="${statePath(s)}">${inner}</a>` : `<div class="state-tile is-empty">${inner}</div>`}</li>`;
   }).join('\n')}
 </ul>`;
@@ -1203,6 +1133,21 @@ function stateFaq(stateName, items) {
 
 const STATE_FILLERS = [`Updated ${YEAR}.`, 'Free to use.', 'Check hours before you go.', 'Plan your next skate.', 'Find public skate times.', 'Indoor and outdoor rinks.', 'Updated for the season.'];
 
+const topics = buildTopicPages({
+  listings, byState, byCity, stateNames, rank, distanceMiles,
+  statePath, cityPath, stateSlug,
+  findStateHref: (slug, stateName) => {
+    const cat = categories.find((c) => c.slug === slug);
+    return cat ? findPageFor(cat, stateName) : null;
+  },
+  codeOf, esc, num, plural, joinNatural, fitTitle, fitDescription,
+  listSection, faqBlock, faqJsonLd, itemListJsonLd, writePage, render,
+  addToSitemap, pageIndex,
+  closesLate, openOnWeekend, isClosed,
+  DATA_DATE, DATA_DATE_LABEL, YEAR, SITE_URL,
+  listToolScripts,
+});
+
 for (const stateName of stateNames) {
   const items = byState.get(stateName);
   const n = items.length;
@@ -1213,6 +1158,15 @@ for (const stateName of stateNames) {
   const avg = ratedItems.length ? ratedItems.reduce((s, l) => s + l.rating, 0) / ratedItems.length : null;
   const withHours = items.filter((l) => l.hours).length;
   const rinkWord = plural(n, 'Rink', 'Rinks');
+  const top = items[0];
+  const description = fitDescription(
+    [
+      `${n} ice rinks in ${stateName}, led by ${top.name} in ${top.city}. Hours, phone numbers and addresses for every rink we list.`,
+      `${top.name} leads ${n} ice ${plural(n, 'rink', 'rinks')} in ${stateName}. Hours, phone numbers and addresses are listed for each one.`,
+      `Find ice skating near you: ${n} ${plural(n, 'rink', 'rinks')} in ${stateName} ranked by real Google reviews, with hours, phone numbers and addresses.`,
+    ],
+    STATE_FILLERS
+  );
 
   const meta = {
     path,
@@ -1222,10 +1176,10 @@ for (const stateName of stateNames) {
       `Ice Skating Near Me in ${stateName}`,
       `Ice Skating Near Me: ${code} Rinks`
     ),
-    description: fitDescription(
-      `Find ice skating near you: ${n} ${plural(n, 'rink', 'rinks')} in ${stateName} ranked by real Google reviews, with hours, phone numbers and addresses.`,
-      STATE_FILLERS
-    ),
+    description,
+    ogTitle: `${n} ice skating rinks in ${stateName}`,
+    ogDescription: description,
+    ogImageAlt: `Directory of ice skating rinks in ${stateName}`,
     h1: `${n} Ice ${rinkWord} Near Me in ${stateName}`,
     lede: `Every ice rink we list in ${esc(stateName)}, ranked by rating and review volume across ${cities.length} ${plural(cities.length, 'city', 'cities')}. Search by name or city, or filter by type. Always confirm session times before you drive out, since public skating shares the ice with hockey, lessons and events.`,
     layout: 'wide',
@@ -1240,8 +1194,14 @@ for (const stateName of stateNames) {
   const countOf = (slug) => featureCount(items, categories.find((c) => c.slug === slug));
   const outdoorish = items.filter((l) => (l.features || []).some((f) => f === 'Outdoor rink' || f === 'Seasonal rink')).length;
 
-  const photos = items.filter((l) => l.photo).slice(0, 8);
-  const stateGuides = [...(listPostsByState.get(stateName) || []), ...guidePosts.slice(0, 6)];
+  const stateLinks = topics.linksByState.get(stateName) || [];
+  const stateHubs = stateLinks.filter((l) => l.href.startsWith('/open/') || l.href.startsWith('/near/'));
+  const stateCityTopics = stateLinks.filter((l) => !l.href.startsWith('/open/') && !l.href.startsWith('/near/')).slice(0, 8);
+  const stateGuides = [
+    ...stateHubs,
+    ...stateCityTopics,
+    ...guidePosts.slice(0, 4).map((p) => ({ href: p.path, label: p.meta.h1 || p.meta.title })),
+  ];
 
   const body = `${listTools(items, stateName)}
 <div class="list-view" data-view="list">
@@ -1259,9 +1219,9 @@ ${cities.map(({ city, items: ci }) => `    <li><a href="${cityPath(stateName, ci
   </ul>
 </section>
 ${stateGuides.length ? `<section class="hub-block" aria-labelledby="guides">
-  <h2 id="guides">${esc(stateName)} ice skating guides</h2>
+  <h2 id="guides">More ways to find ice in ${esc(stateName)}</h2>
   <ul class="plain-links">
-${stateGuides.map((p) => `    <li><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a></li>`).join('\n')}
+${stateGuides.map((p) => `    <li><a href="${p.href}">${esc(p.label)}</a></li>`).join('\n')}
   </ul>
 </section>` : ''}
 <section class="hub-block prose" aria-labelledby="planning">
@@ -1271,11 +1231,6 @@ ${stateGuides.map((p) => `    <li><a href="${p.path}">${esc(p.meta.h1 || p.meta.
   <p>Bring gloves, wear warm layers you can move in, and arrive a little early on weekends, when public sessions fill fastest. New to the ice? Read <a href="/blog/how-to-ice-skate-for-beginners/">how to ice skate for the first time</a> before you go.</p>
   <p><a class="btn btn-outline" href="${mapStatePath(stateName)}">Search the ${esc(stateName)} map</a></p>
 </section>
-${photos.length ? `<section class="hub-block" aria-labelledby="photos">
-  <h2 id="photos">Photos from ice rinks in ${esc(stateName)}</h2>
-  <div class="photo-grid">${photos.map((l) => `<a href="${l.url}" title="${attr(l.name)}">${listingImage(l, { size: 'card' })}</a>`).join('')}</div>
-  <p class="data-note">Photos from each rink's Google Maps listing.</p>
-</section>` : ''}
 ${neighbors.length ? `<section class="hub-block" aria-labelledby="nearby-states">
   <h2 id="nearby-states">Ice skating in nearby states</h2>
   <ul class="state-list">
@@ -1314,6 +1269,18 @@ for (const [key, items] of byCity) {
   const here = centroid(items);
   const nearbyOther = nearestListings(here.lat, here.lng, 6, new Set(items.map((l) => l.slug)), 40);
 
+  const top = items[0];
+  const nearName = near[0]?.city;
+  const description = fitDescription(
+    [
+      nearName
+        ? `${top.name} leads ${n} ice ${plural(n, 'rink', 'rinks')} in ${cityName}, ${code}. ${nearName} is the closest other town with a rink.`
+        : `${top.name} leads ${n} ice ${plural(n, 'rink', 'rinks')} in ${cityName}, ${code}. Hours and directions are listed for each rink.`,
+      `${n} ice ${plural(n, 'rink', 'rinks')} in ${cityName}, ${code}, led by ${top.name}. Hours, addresses and directions are on this page.`,
+      `Browse ${n} ice ${plural(n, 'rink', 'rinks')} in ${cityName}, ${code}. Hours, addresses and directions are listed for each rink.`,
+    ],
+    [`Updated ${YEAR}.`, 'Free to use.', 'Plan your skate.', 'See the state list too.']
+  );
   const meta = {
     path,
     title: fitTitle(
@@ -1322,14 +1289,15 @@ for (const [key, items] of byCity) {
       `Ice Skating in ${cityName}, ${code}`,
       `${cityName} Ice Rinks`
     ),
-    description: fitDescription(
-      `Ice skating in ${cityName}, ${code}: ${n} ${plural(n, 'rink', 'rinks')} ranked by Google reviews, with hours, phone numbers, addresses and directions.`,
-      ['Plus nearby towns.', `Updated ${YEAR}.`, 'Free to use.', 'Check hours before you go.', 'Find public skate times.', 'Updated for the season.']
-    ),
+    description,
+    ogTitle: `Ice skating in ${cityName}, ${stateName}: ${n} ${plural(n, 'rink', 'rinks')}`,
+    ogDescription: description,
+    ogImageAlt: `Ice skating in ${cityName}, ${stateName}`,
     h1: n > 1 ? `Ice Skating in ${cityName}, ${code}: ${n} Rinks Ranked` : `Ice Skating in ${cityName}, ${code}`,
     lede: n > 1
       ? `The ${n} ice rinks we list in ${esc(cityName)}, ranked by Google rating weighted by review volume, with hours, contact details and directions.`
       : `The ice rink we list in ${esc(cityName)}, with hours, contact details and directions, plus the closest rinks in nearby towns.`,
+    noindex: n < 2,
     layout: 'wide',
     nav: 'states',
     featuredState: stateName,
@@ -1346,7 +1314,9 @@ for (const [key, items] of byCity) {
   });
   cityFaq.push({ q: 'Are these hours current?', a: `They come from each rink's Google listing as of ${DATA_DATE_LABEL}. Public session times change often, so check with the rink before you go.` });
 
+  const cityTopics = topics.linksByCity.get(`${stateName}|${cityName}`) || [];
   const body = `${stateFilterChips(byState.get(stateName), stateName)}
+${cityTopics.length ? `<nav class="chip-row" aria-label="More ${attr(cityName)} pages">${cityTopics.map((l) => `<a class="chip" href="${l.href}">${esc(l.label)}</a>`).join('')}</nav>` : ''}
 ${listSection(items, { peers: byState.get(stateName), stateName, headingTag: 'h2', showCity: false })}
 <p class="crumb-links"><a href="${statePath(stateName)}">All ${byState.get(stateName).length} rinks in ${esc(stateName)}</a> <span aria-hidden="true">&middot;</span> <a href="${mapStatePath(stateName)}">Map of ${esc(stateName)} rinks</a></p>
 ${renderAdSlot('display')}
@@ -1369,7 +1339,9 @@ ${near.map((c) => `  <li><a href="${cityPath(stateName, c.city)}">${esc(c.city)}
     faqJsonLd(cityFaq),
   ];
   writePage(path, render(meta, body, { jsonld, scripts: listToolScripts() }));
-  addToSitemap(path, '0.7', DATA_DATE);
+  // One-rink city pages duplicate that rink's listing. Keep them for people
+  // following a link, but keep them out of the index and the sitemap.
+  if (n >= 2) addToSitemap(path, '0.7', DATA_DATE);
 }
 
 /* --- listing pages -------------------------------------------------------- */
@@ -1452,7 +1424,7 @@ for (const l of listings) {
   <div class="detail-main">
     <figure class="detail-hero">
       ${listingImage(l, { size: 'hero', className: 'detail-hero-img', eager: true })}
-      <figcaption>${l.photo ? `Photo from ${esc(l.name)}'s Google Maps listing` : 'Illustration. No current photo is available for this rink.'}</figcaption>
+      <figcaption>Illustration. A photo of this rink is not available.</figcaption>
     </figure>
     ${l.status === 'CLOSED_TEMPORARILY' ? `<div class="notice"><p><strong>Temporarily closed.</strong> Google currently marks ${esc(l.name)} as temporarily closed. Seasonal rinks often show this between seasons. Check with the rink before you go.</p></div>` : ''}
     <p class="entry-rating">${ratingHtml(l)}${l.reviews ? ` <span class="entry-reviews">${num(l.reviews)} Google ${plural(l.reviews, 'review', 'reviews')}</span>` : ''}</p>
@@ -1477,7 +1449,7 @@ ${payments.length ? `      <li><b>Payments:</b> ${esc(payments.join(', '))}</li>
     <div class="card-grid">
 ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
     </div>` : ''}
-    <p class="crumb-links">${cityItems.length > 1 ? `<a href="${cityPath(l.state, l.city)}">All ${cityItems.length} rinks in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> ` : `<a href="${cityPath(l.state, l.city)}">Ice skating in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> `}<a href="${statePath(l.state)}">All ${peers.length} rinks in ${esc(l.state)}</a>${(listPostsByState.get(l.state) || [])[0] ? ` <span aria-hidden="true">&middot;</span> <a href="${listPostsByState.get(l.state)[0].path}">${esc(listPostsByState.get(l.state)[0].meta.h1)}</a>` : ''} <span aria-hidden="true">&middot;</span> <a href="${mapStatePath(l.state)}?focus=${attr(l.slug)}">See it on the map</a></p>
+    <p class="crumb-links">${cityItems.length > 1 ? `<a href="${cityPath(l.state, l.city)}">All ${cityItems.length} rinks in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> ` : `<a href="${cityPath(l.state, l.city)}">Ice skating in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> `}<a href="${statePath(l.state)}">All ${peers.length} rinks in ${esc(l.state)}</a> <span aria-hidden="true">&middot;</span> <a href="${mapStatePath(l.state)}?focus=${attr(l.slug)}">See it on the map</a></p>
   </div>
   <aside class="detail-side">
     <div class="card side-card">
@@ -1501,7 +1473,7 @@ ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
       '@id': `${SITE_URL}${path}#rink`,
       name: l.name,
       url: SITE_URL + path,
-      ...(l.photo ? {} : { image: `${SITE_URL}/assets/img/og-image.jpg` }),
+      image: `${SITE_URL}${fallbackFor(l)}`,
       address: {
         '@type': 'PostalAddress',
         ...(l.street ? { streetAddress: l.street } : {}),
@@ -1515,7 +1487,6 @@ ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
       ...(l.website ? { sameAs: [l.website] } : {}),
       ...(l.mapsUrl ? { hasMap: l.mapsUrl } : {}),
       ...(hoursSpec && hoursSpec.length ? { openingHoursSpecification: hoursSpec } : {}),
-      ...(l.rating && l.reviews ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: l.rating, reviewCount: l.reviews, bestRating: 5, worstRating: 1 } } : {}),
     },
     faqJsonLd(faqItems),
   ];
@@ -1621,13 +1592,10 @@ ${items.map((l) => `  <li><a href="${l.url}">${esc(l.name)}</a> <span>${esc(l.ci
 
 const topRated = rank(listings.filter((l) => (l.reviews || 0) >= 20)).slice(0, 12);
 
-/** Image for a /find/ block: a photo from the best-ranked rink of that type
- *  that has one, falling back to the site's own skating photos. */
+/** Category card image: one of the site's own skating photos, never a hotlinked listing photo. */
 function findImage(cat) {
-  const withPhoto = rank(listings.filter((l) => hasFeature(l, cat) && l.photo))[0];
-  const local = `/assets/img/photos/cover-${(seededHash(cat.slug) % 6) + 1}.jpg`;
-  const src = withPhoto ? resizedPhotoUrl(withPhoto.photo, ...IMAGE_SIZES.card) : local;
-  return `<img src="${attr(src)}" alt="" width="480" height="300" loading="lazy" decoding="async"${withPhoto ? ` referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${local}';"` : ''}>`;
+  const src = `/assets/img/photos/cover-${(seededHash(cat.slug) % 6) + 1}.jpg`;
+  return `<img src="${attr(src)}" alt="${attr(cat.name)}" width="480" height="300" loading="lazy" decoding="async">`;
 }
 
 const tokens = {
@@ -1661,6 +1629,7 @@ const tokens = {
   '{{TOP_RATED}}': topRated.length
     ? `<div class="card-row" data-near-list>\n${topRated.map((l) => renderCard(l)).join('\n')}\n</div>`
     : '<div class="card-row" data-near-list></div>',
+  '{{TOPIC_HOME}}': topics.homeHtml || '<p>Metro hubs appear here once listings are published.</p>',
   '{{FIND_CHIPS}}': findCounts.some((x) => x.n)
     ? `<div class="chip-row chip-row-lg">${findCounts.filter((x) => x.n).map(({ c, n }) => `<a class="chip" href="${findPath(c)}">${esc(c.name)} <span>${n}</span></a>`).join('')}</div>`
     : '<p>Type filters appear once listings are published.</p>',
@@ -1739,7 +1708,7 @@ for (const page of staticPages) {
     nav: '',
     trail: [{ label: 'Sitemap' }],
   };
-  const groups = ['Site', 'States', 'Find by type', 'Guides', 'Lists'];
+  const groups = ['Site', 'States', 'Topics', 'Find by type', 'Guides', 'Lists'];
   const cityGroups = stateNames.map((s) => `<h3><a href="${statePath(s)}">${esc(s)}</a></h3>\n${cityLinkGrid(s)}`).join('\n');
   const body = groups
     .map((g) => {
@@ -1762,7 +1731,7 @@ writeFileSync(
   join(DIST, 'data/rinks.json'),
   JSON.stringify(listings.map((l) => ({
     n: l.name, u: l.url, c: `${l.city}, ${l.stateCode}`, a: l.lat, o: l.lng, r: l.rating, v: l.reviews, k: l.slug,
-    i: l.photo ? resizedPhotoUrl(l.photo, ...IMAGE_SIZES.card) : fallbackFor(l), f: fallbackFor(l),
+    i: fallbackFor(l), f: fallbackFor(l),
   })))
 );
 writeFileSync(
@@ -1776,6 +1745,7 @@ writeFileSync(
     ...stateNames.map((s) => ({ t: 'State', n: s, p: `${byState.get(s).length} rinks`, u: statePath(s) })),
     ...findCounts.filter((x) => x.n).map(({ c, n }) => ({ t: 'Type', n: c.name, p: `${n} rinks`, u: findPath(c) })),
     ...posts.map((p) => ({ t: 'Guide', n: p.meta.h1 || p.meta.title, p: p.meta.excerpt || '', u: p.path })),
+    ...topics.searchEntries,
   ])
 );
 
@@ -1815,8 +1785,13 @@ let pageCount = 0;
   }
 })(DIST);
 
+const oneRinkCities = [...byCity.values()].filter((items) => items.length === 1).length;
 console.log(`Built ${pageCount} pages into dist/`);
-console.log(`  ${listings.length} listings, ${stateNames.length} states, ${byCity.size} cities, ${posts.length} blog posts, ${sitemap.length} sitemap URLs`);
+console.log(`  ${listings.length} listings, ${stateNames.length} states, ${byCity.size} cities (${oneRinkCities} one-rink cities noindex), ${posts.length} blog posts, ${sitemap.length} sitemap URLs`);
+console.log(`  dropped ${droppedNonVenues.length} non-rink listings`);
+for (const line of droppedNonVenues.slice(0, 25)) console.log(`    - ${line}`);
+if (droppedNonVenues.length > 25) console.log(`    ...and ${droppedNonVenues.length - 25} more`);
+console.log(`  topic pages: ${JSON.stringify(topics.counts)}`);
 if (!hasData) console.log('  note: data/listings.json is empty. Run `npm run import -- <outscraper export>` to publish rinks.');
-if (hasData && !photosFresh) console.log(`  note: listing photos are ${Math.floor(photoAgeDays)} days old (limit ${PHOTO_MAX_AGE_DAYS}); Google photo URLs expire, so local fallbacks are used. Re-import to refresh.`);
+console.log('  note: Google listing photo URLs are not published. Cards use local illustrations until licensed photos are added.');
 if (!AD_SLOTS.display && !AD_SLOTS.inFeed && !AD_SLOTS.inArticle) console.log('  note: no AdSense slot IDs set; manual ad units are off (the AdSense loader is still on every page).');

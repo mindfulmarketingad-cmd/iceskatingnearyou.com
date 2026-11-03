@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
-const SITE_URL = 'https://iceskatingnearyou.com';
+const SITE_URL = 'https://www.iceskatingnearyou.com';
 const ADS_TXT = 'google.com, pub-9332749804326149, DIRECT, f08c47fec0942fa0';
 const EMOJI = /\p{Extended_Pictographic}/u;
 
@@ -99,12 +99,22 @@ for (const file of htmlFiles) {
   }
 
   if (EMOJI.test(html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, ''))) warn(file, 'contains emoji');
+  if (html.includes('googleusercontent.com')) warn(file, 'hotlinked Google photo URL');
+  if (html.includes('aggregateRating')) warn(file, 'third-party aggregateRating in schema');
+  if (html.includes('https://iceskatingnearyou.com')) warn(file, 'absolute URL uses the apex host instead of www');
 
   for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
     try {
       JSON.parse(m[1]);
     } catch {
       warn(file, 'JSON-LD does not parse');
+    }
+  }
+
+  if (path === '/') {
+    for (const img of markup.matchAll(/<img\b[^>]*>/g)) {
+      const alt = (img[0].match(/\balt="([^"]*)"/) || [])[1];
+      if (!alt) warn(file, `image missing alt text: ${img[0].slice(0, 100)}`);
     }
   }
 
@@ -129,6 +139,7 @@ const sitemap = readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
 const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 for (const url of sitemapUrls) {
   const path = url.replace(SITE_URL, '');
+  if (!url.startsWith(`${SITE_URL}/`) && url !== `${SITE_URL}/`) errors.push(`sitemap.xml: ${url} is not on the www host`);
   if (!resolves(path)) errors.push(`sitemap.xml: ${url} does not exist`);
   if (noindexPaths.has(path)) errors.push(`sitemap.xml: ${url} is noindex`);
 }
@@ -137,7 +148,8 @@ if (new Set(sitemapUrls).size !== sitemapUrls.length) errors.push('sitemap.xml: 
 /* root files */
 const ads = readFileSync(join(DIST, 'ads.txt'), 'utf8').trim();
 if (ads !== ADS_TXT) errors.push(`ads.txt is "${ads}"`);
-if (!/Sitemap: https:\/\/iceskatingnearyou\.com\/sitemap\.xml/.test(readFileSync(join(DIST, 'robots.txt'), 'utf8'))) errors.push('robots.txt has no sitemap line');
+if (!/Sitemap: https:\/\/www\.iceskatingnearyou\.com\/sitemap\.xml/.test(readFileSync(join(DIST, 'robots.txt'), 'utf8'))) errors.push('robots.txt has no www sitemap line');
+if (sitemap.includes('googleusercontent.com') || sitemap.includes('https://iceskatingnearyou.com/')) errors.push('sitemap.xml contains a non-www or Google photo URL');
 
 console.log(`Checked ${htmlFiles.length} HTML files, ${linkCount} internal links, ${sitemapUrls.length} sitemap URLs.`);
 if (errors.length) {

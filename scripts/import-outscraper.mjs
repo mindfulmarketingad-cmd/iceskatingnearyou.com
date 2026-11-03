@@ -12,8 +12,9 @@
  * - Drops CLOSED_PERMANENTLY rows. CLOSED_TEMPORARILY rows are kept and the
  *   listing page says so (seasonal outdoor rinks often show that status).
  * - Drops rows that are not ice venues (roller rinks, skate shops, ice-cream
- *   parlours, which "ice skating rink" searches routinely return). Pass
- *   --keep-all to skip that filter.
+ *   parlours, pro shops, sharpening shops, and bars, which "ice skating
+ *   rink" searches routinely return). Name and category rules plus
+ *   data/blocklist.json do this. Pass --keep-all to skip that filter.
  * - Drops rows with no name, no coordinates or no recognisable US state.
  * - De-duplicates on place_id (falling back to name + coordinates), keeping
  *   the row with more reviews.
@@ -22,11 +23,12 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normaliseListing, isIceVenue, venueRejection } from './lib/listings.mjs';
+import { normaliseListing, isIceVenue, venueRejection, nonVenueReason } from './lib/listings.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // LISTINGS_FILE lets a test import write somewhere other than the live dataset.
 const DATA_FILE = process.env.LISTINGS_FILE ? resolve(process.env.LISTINGS_FILE) : resolve(ROOT, 'data/listings.json');
+const BLOCKLIST_FILE = resolve(ROOT, 'data/blocklist.json');
 
 /** RFC 4180 CSV parser (quoted fields, embedded commas and newlines). */
 export function parseCsv(text) {
@@ -108,7 +110,8 @@ async function main() {
     rows = rows.concat(fileRows);
   }
 
-  const skipped = { closed: [], notIce: [], notVenue: [], invalid: [], duplicate: [] };
+  const blocklist = existsSync(BLOCKLIST_FILE) ? JSON.parse(readFileSync(BLOCKLIST_FILE, 'utf8')) : { ids: [], names: [] };
+  const skipped = { closed: [], notIce: [], notVenue: [], blocked: [], invalid: [], duplicate: [] };
   const byKey = new Map();
 
   for (const row of rows) {
@@ -119,6 +122,13 @@ async function main() {
     if (!keepAll && !isIceVenue(row)) {
       skipped.notIce.push(`${row.name} (${row.category || row.type || 'no category'})`);
       continue;
+    }
+    if (!keepAll) {
+      const blocked = nonVenueReason(row, blocklist);
+      if (blocked) {
+        skipped.blocked.push(`${row.name}: ${blocked}`);
+        continue;
+      }
     }
     const notVenue = keepAll ? null : venueRejection(row);
     if (notVenue) {
@@ -170,6 +180,7 @@ async function main() {
   };
   report('permanently closed', skipped.closed);
   report('not ice venues (use --keep-all to keep)', skipped.notIce);
+  report('shops, bars, and blocklisted businesses (use --keep-all to keep)', skipped.blocked);
   report('clubs, coaches and service businesses (use --keep-all to keep)', skipped.notVenue);
   report('missing name, coordinates, US state or city', skipped.invalid);
   report('duplicates', skipped.duplicate);

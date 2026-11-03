@@ -433,9 +433,13 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .entry-blurb { margin: 6px 0 8px; font-size: 1rem; line-height: 1.7; }
 .entry .chip-row { margin: 4px 0 0; }
 .entry .status-flag { margin: 4px 0; }
+.entry-compact { grid-template-columns: 30px minmax(0, 1fr); padding: 12px 16px; }
+.entry-compact .entry-title { font-size: 1.02rem; }
+.entry-compact .entry-line { margin: 0; }
 @media (max-width: 640px) {
   .entry { grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 14px; }
   .entry-thumb { display: none; }
+  .entry-compact { grid-template-columns: 28px minmax(0, 1fr); }
 }
 .city-list { grid-template-columns: repeat(5, 1fr); margin-bottom: 8px; }
 @media (max-width: 1100px) { .city-list { grid-template-columns: repeat(3, 1fr); } }
