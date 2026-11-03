@@ -1,0 +1,26 @@
+{
+  "note": "Businesses that are not places to skate. The site build and the Outscraper import both drop these, even when Google labels them as an ice skating rink. Match is exact: place_id in ids, or the full listing name in names (case-insensitive). Add a row here when a shop, bar, or service business slips past the category and name rules in scripts/lib/listings.mjs.",
+  "ids": [
+    "ChIJaSxbP_SpK4cRvZJFgQSfGYg",
+    "ChIJy11IDIPNwoARt8s6JFYknIE",
+    "ChIJCSteoS0jw4gRxwLtNoMZElo",
+    "ChIJ61nu3ZZNGIgR2BRzFpeYarw",
+    "ChIJ87Nk9DWTGYgR5lzPoDqDQ2Q",
+    "ChIJuYRbjlQu6IkRtYHuW9w-09Q",
+    "ChIJBajbPRRx2IkRHziIRJ5VOt0",
+    "ChIJ1Zh_BsEkVIgRmzyhHuKFJV0",
+    "ChIJJcqaW687_qURtZBHxCqkUlI",
+    "ChIJ1bi7gxyLUocRXUrQ9gFlJGQ"
+  ],
+  "names": [
+    "Pro Skate",
+    "Pro Stride Hockey USA",
+    "Precision Edge Hockey & Sports",
+    "On Your Game",
+    "Cozzi Sports",
+    "Power Play Sports",
+    "Redmond's Corner",
+    "EDGE for the icebound",
+    "Sterling Skates - By Appointment Only"
+  ]
+}

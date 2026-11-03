@@ -5,7 +5,2575 @@
   "cleanUrls": true,
   "trailingSlash": true,
   "headers": [
-    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
-    { "source": "/data/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] }
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/data/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/blog/best-ice-skating-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-alabama/",
+      "destination": "/states/alabama/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-alaska/",
+      "destination": "/states/alaska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-arizona/",
+      "destination": "/states/arizona/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-arkansas/",
+      "destination": "/states/arkansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-california/",
+      "destination": "/states/california/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-colorado/",
+      "destination": "/states/colorado/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-connecticut/",
+      "destination": "/states/connecticut/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-delaware/",
+      "destination": "/states/delaware/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-district-of-columbia/",
+      "destination": "/states/district-of-columbia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-florida/",
+      "destination": "/states/florida/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-georgia/",
+      "destination": "/states/georgia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-hawaii/",
+      "destination": "/states/hawaii/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-idaho/",
+      "destination": "/states/idaho/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-illinois/",
+      "destination": "/states/illinois/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-indiana/",
+      "destination": "/states/indiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-iowa/",
+      "destination": "/states/iowa/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-kansas/",
+      "destination": "/states/kansas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-kentucky/",
+      "destination": "/states/kentucky/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-louisiana/",
+      "destination": "/states/louisiana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-maine/",
+      "destination": "/states/maine/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-maryland/",
+      "destination": "/states/maryland/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-massachusetts/",
+      "destination": "/states/massachusetts/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-michigan/",
+      "destination": "/states/michigan/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-minnesota/",
+      "destination": "/states/minnesota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-mississippi/",
+      "destination": "/states/mississippi/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-missouri/",
+      "destination": "/states/missouri/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-montana/",
+      "destination": "/states/montana/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-nebraska/",
+      "destination": "/states/nebraska/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-nevada/",
+      "destination": "/states/nevada/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-new-hampshire/",
+      "destination": "/states/new-hampshire/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-new-jersey/",
+      "destination": "/states/new-jersey/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-new-mexico/",
+      "destination": "/states/new-mexico/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-new-york/",
+      "destination": "/states/new-york/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-north-carolina/",
+      "destination": "/states/north-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-north-dakota/",
+      "destination": "/states/north-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-ohio/",
+      "destination": "/states/ohio/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-oklahoma/",
+      "destination": "/states/oklahoma/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-oregon/",
+      "destination": "/states/oregon/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-pennsylvania/",
+      "destination": "/states/pennsylvania/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-rhode-island/",
+      "destination": "/states/rhode-island/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-south-carolina/",
+      "destination": "/states/south-carolina/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-south-dakota/",
+      "destination": "/states/south-dakota/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-tennessee/",
+      "destination": "/states/tennessee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-texas/",
+      "destination": "/states/texas/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-utah/",
+      "destination": "/states/utah/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-vermont/",
+      "destination": "/states/vermont/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-virginia/",
+      "destination": "/states/virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-washington/",
+      "destination": "/states/washington/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-west-virginia/",
+      "destination": "/states/west-virginia/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-wisconsin/",
+      "destination": "/states/wisconsin/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-indoor-ice-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-outdoor-ice-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-seasonal-ice-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-hockey-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-figure-skating-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-skating-lessons-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-rinks-with-skate-rentals-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-curling-rinks-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/best-ice-rink-birthday-parties-in-wyoming/",
+      "destination": "/states/wyoming/",
+      "permanent": true
+    }
   ]
 }

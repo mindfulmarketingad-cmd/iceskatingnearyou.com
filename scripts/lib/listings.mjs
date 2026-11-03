@@ -241,6 +241,32 @@ export function venueRejection(row) {
   return null;
 }
 
+/**
+ * Shops, bars, and other non-rink businesses that Google often labels
+ * "Ice skating rink". Name and primary-category rules catch the pattern.
+ * `blocklist` ({ ids, names }) is the maintainable escape hatch for
+ * listings the patterns miss. Pass either a raw Outscraper row or a
+ * normalised listing.
+ */
+const NON_VENUE_NAME = /\b(pro\s*shops?|skate\s*shops?|hockey\s*shops?|skate\s*hut|ice\s*cream|italian\s*ice|sports?\s*bars?|bar\s*(?:&|and)\s*grill|snack\s*bar|grill\s*&\s*games|chicken\s*n\s*pickle|sharpen(?:ing|'s)?|skate\s*rentals?|ice\s*rink\s*rentals?|ice\s*skates|coach)\b/i;
+const NON_VENUE_CATEGORY = /\b(restaurant|ice cream|dessert shop|coffee shop|cafe|bar & grill|sports bar|hockey supply store|skate shop|sporting goods store|skate sharpening|clothing store|gift shop)\b/i;
+
+export function nonVenueReason(row, blocklist = { ids: [], names: [] }) {
+  const name = String(row?.name || '').trim();
+  const nameKey = name.toLowerCase();
+  const id = String(row?.place_id || row?.placeId || row?.google_id || row?.id || '').trim();
+  const ids = new Set((blocklist.ids || []).map((value) => String(value).trim()).filter(Boolean));
+  const names = new Set((blocklist.names || []).map((value) => String(value).trim().toLowerCase()).filter(Boolean));
+  if (id && ids.has(id)) return 'blocklist';
+  if (nameKey && names.has(nameKey)) return 'blocklist';
+  if (name && NON_VENUE_NAME.test(name)) return 'name is a shop, bar, coach, or other non-rink business';
+  // Normalised listings store Google's primary type in `category`.
+  // Raw rows store it in `type` (Outscraper's `category` is a coarse group).
+  const primary = String(row?.type || row?.category || '');
+  if (NON_VENUE_CATEGORY.test(primary)) return `primary category is ${primary}`;
+  return null;
+}
+
 /* ---------------------------------------------------------- feature tags -- */
 
 /**
