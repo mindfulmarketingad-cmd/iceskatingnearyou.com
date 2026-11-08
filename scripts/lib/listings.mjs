@@ -358,9 +358,9 @@ export function normaliseListing(input, taken) {
     reviewTags: parseReviewTags(input.reviews_tags),
     hours: parseWorkingHours(input.working_hours || input.hours),
     about,
-    // Google photo URLs are signed and stop working after roughly four
-    // weeks. The build checks `importedAt` in data/listings.json and stops
-    // using them once they are stale; templates always fall back locally.
+    // Google photo URLs are signed and are kept here only as an import
+    // reference. The build never publishes them. Listing pages use hosted
+    // Pexels photos, or a path under /assets/ when a rink photo is ours.
     photo: cleanField(input.photo),
     photosCount: Number.isFinite(photosCount) && photosCount > 0 ? Math.round(photosCount) : null,
     mapsUrl: cleanField(input.location_link),

@@ -32,6 +32,7 @@ import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { slugify, STATES, STATE_NEIGHBORS, DAYS, distanceMiles, nonVenueReason } from './lib/listings.mjs';
 import { buildTopicPages } from './lib/topics.mjs';
+import { imageForListing, isOwnHostedPhoto, loadLifestylePhotos } from './lib/lifestyle.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
@@ -68,9 +69,11 @@ const AD_INFEED_LAYOUT_KEY = process.env.ADSENSE_INFEED_LAYOUT_KEY || '';
 
 /* Listing photos from Google are signed lh3.googleusercontent.com URLs.
    They expire, and hotlinking them is not a licensed photo source. The
-   build never emits those URLs. Cards use the site's own illustrations in
-   src/assets/img/fallbacks/ until rink-owned or licensed photos exist. */
+   build never emits those URLs. Cards and rink pages use hosted Pexels
+   photographs (data/lifestyle-photos.json). The SVG illustrations remain
+   only as an onerror fallback if a hosted file is missing. */
 const FALLBACK_IMAGES = [1, 2, 3, 4].map((n) => `/assets/img/fallbacks/rink-${n}.svg`);
+const lifestylePhotos = loadLifestylePhotos(ROOT);
 const RICH_ENTRY_LIMIT = 24;
 
 /* ------------------------------------------------------------------ inputs */
@@ -87,7 +90,9 @@ const listings = (data.listings || []).filter((l) => {
     droppedNonVenues.push(`${l.name} (${l.city}, ${l.stateCode}): ${reason}`);
     return false;
   }
-  // Never publish a Google photo URL, even if a template reads `photo`.
+  // Never publish a Google or other remote photo URL. A path we already
+  // host under /assets/ is kept and used instead of the stock pool.
+  if (isOwnHostedPhoto(l.photo)) l.ownPhoto = l.photo;
   l.photo = null;
   return true;
 });
@@ -128,6 +133,8 @@ function seededHash(seed) {
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   return hash;
 }
+
+for (const l of listings) l.image = imageForListing(l, seededHash, l.ownPhoto || null);
 
 function writePage(urlPath, html) {
   const rel = urlPath === '/' ? 'index.html' : urlPath.endsWith('.html') ? urlPath.slice(1) : join(urlPath.replace(/^\/|\/$/g, ''), 'index.html');
@@ -371,9 +378,23 @@ const IMAGE_SIZES = { thumb: [320, 200], card: [480, 300], hero: [960, 540] };
 
 function listingImage(l, { size = 'card', className = '', eager = false } = {}) {
   const [w, h] = IMAGE_SIZES[size];
-  const src = fallbackFor(l);
-  const alt = `Illustration representing ${l.name} in ${l.city}, ${l.state}`;
-  return `<img class="${className}" src="${attr(src)}" alt="${attr(alt)}" width="${w}" height="${h}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
+  const img = l.image;
+  const src = size === 'hero' ? img.hero : img.card;
+  const srcset = size === 'hero'
+    ? ` srcset="${attr(img.card)} 640w, ${attr(img.hero)} 1200w" sizes="(max-width: 800px) 100vw, 720px"`
+    : '';
+  // The SVG is only swapped in if the hosted file fails to load.
+  const fallback = fallbackFor(l);
+  return `<img class="${className}" src="${attr(src)}"${srcset} alt="${attr(img.alt)}" width="${w}" height="${h}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async" onerror="this.onerror=null;this.src='${fallback}'">`;
+}
+
+function photoCaption(l) {
+  const img = l.image;
+  if (!img || img.own) return '';
+  const credit = img.author
+    ? `Photo by <a href="${attr(img.sourceUrl)}" rel="noopener noreferrer">${esc(img.author)}</a>`
+    : 'Photo';
+  return `<figcaption>${credit} on <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a>. A stock photo of ice skating, not a photograph of ${esc(l.name)}.</figcaption>`;
 }
 
 /* -------------------------------------------------------------------- ads */
@@ -1424,7 +1445,7 @@ for (const l of listings) {
   <div class="detail-main">
     <figure class="detail-hero">
       ${listingImage(l, { size: 'hero', className: 'detail-hero-img', eager: true })}
-      <figcaption>Illustration. A photo of this rink is not available.</figcaption>
+      ${photoCaption(l)}
     </figure>
     ${l.status === 'CLOSED_TEMPORARILY' ? `<div class="notice"><p><strong>Temporarily closed.</strong> Google currently marks ${esc(l.name)} as temporarily closed. Seasonal rinks often show this between seasons. Check with the rink before you go.</p></div>` : ''}
     <p class="entry-rating">${ratingHtml(l)}${l.reviews ? ` <span class="entry-reviews">${num(l.reviews)} Google ${plural(l.reviews, 'review', 'reviews')}</span>` : ''}</p>
@@ -1473,7 +1494,6 @@ ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
       '@id': `${SITE_URL}${path}#rink`,
       name: l.name,
       url: SITE_URL + path,
-      image: `${SITE_URL}${fallbackFor(l)}`,
       address: {
         '@type': 'PostalAddress',
         ...(l.street ? { streetAddress: l.street } : {}),
@@ -1696,6 +1716,39 @@ for (const page of staticPages) {
   }
 }
 
+/* --- photo credits (generated from the hosted Pexels catalog) ------------ */
+
+{
+  const meta = {
+    path: '/photo-credits/',
+    title: 'Photo Credits | Ice Skating Near You',
+    description: fitDescription(
+      'Photographer credits for the Pexels ice skating photos on rink cards and rink pages. These scenes are not pictures of a specific rink.',
+      ['Hosted on this site.', 'See the Pexels License.', 'Free to view.']
+    ),
+    h1: 'Photo credits',
+    lede: 'The photographs on rink cards and rink pages are free-licensed ice skating scenes we host ourselves. They are not photographs of the rink named on the page.',
+    layout: 'prose',
+    nav: '',
+    trail: [{ label: 'Photo credits' }],
+  };
+  const byAuthor = new Map();
+  for (const photo of lifestylePhotos) {
+    const name = photo.author || 'Photographer';
+    if (!byAuthor.has(name)) byAuthor.set(name, []);
+    byAuthor.get(name).push(photo);
+  }
+  const groups = [...byAuthor.entries()].sort((a, b) => a[0].localeCompare(b[0], 'en'));
+  const body = `<p>Listing photos come from <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a> and are stored on this site as WebP files. The <a href="https://www.pexels.com/license/" rel="noopener noreferrer">Pexels License</a> does not require credit. We name the photographer anyway. Nothing in this list is an official photo of a rink in the directory.</p>
+${groups.map(([author, items]) => `<h2>${esc(author)}</h2>
+<ul>
+${items.map((p) => `  <li><a href="${attr(p.sourceUrl)}" rel="noopener noreferrer">${esc(p.alt)}</a></li>`).join('\n')}
+</ul>`).join('\n')}`;
+  writePage(meta.path, render(meta, body));
+  addToSitemap(meta.path, '0.2');
+  pageIndex.push({ path: meta.path, title: 'Photo credits', group: 'Site' });
+}
+
 /* --- HTML sitemap (written after everything it lists) --------------------- */
 
 {
@@ -1731,7 +1784,7 @@ writeFileSync(
   join(DIST, 'data/rinks.json'),
   JSON.stringify(listings.map((l) => ({
     n: l.name, u: l.url, c: `${l.city}, ${l.stateCode}`, a: l.lat, o: l.lng, r: l.rating, v: l.reviews, k: l.slug,
-    i: fallbackFor(l), f: fallbackFor(l),
+    i: l.image.card, f: l.image.card, t: l.image.alt,
   })))
 );
 writeFileSync(
@@ -1793,5 +1846,24 @@ for (const line of droppedNonVenues.slice(0, 25)) console.log(`    - ${line}`);
 if (droppedNonVenues.length > 25) console.log(`    ...and ${droppedNonVenues.length - 25} more`);
 console.log(`  topic pages: ${JSON.stringify(topics.counts)}`);
 if (!hasData) console.log('  note: data/listings.json is empty. Run `npm run import -- <outscraper export>` to publish rinks.');
-console.log('  note: Google listing photo URLs are not published. Cards use local illustrations until licensed photos are added.');
+{
+  const used = new Set(listings.map((l) => l.image.id));
+  const themes = {};
+  const byCity = new Map();
+  for (const l of listings) {
+    themes[l.image.theme] = (themes[l.image.theme] || 0) + 1;
+    const key = `${l.city}|${l.stateCode}`;
+    if (!byCity.has(key)) byCity.set(key, []);
+    byCity.get(key).push(l.image.id);
+  }
+  let worst = { city: '', n: 0, unique: 0 };
+  for (const [city, ids] of byCity) {
+    if (ids.length < 4) continue;
+    const unique = new Set(ids).size;
+    if (ids.length - unique > worst.n - worst.unique) worst = { city, n: ids.length, unique };
+  }
+  console.log(`  lifestyle photos: ${lifestylePhotos.length} in the catalog, ${used.size} used on listings (${JSON.stringify(themes)})`);
+  if (worst.n) console.log(`  photo variety: busiest repeat is ${worst.city} (${worst.unique} different photos across ${worst.n} rinks)`);
+}
+console.log('  note: Google listing photo URLs are not published. Cards use hosted Pexels photos, not hotlinked images.');
 if (!AD_SLOTS.display && !AD_SLOTS.inFeed && !AD_SLOTS.inArticle) console.log('  note: no AdSense slot IDs set; manual ad units are off (the AdSense loader is still on every page).');

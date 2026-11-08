@@ -99,11 +99,19 @@ for (const file of htmlFiles) {
   }
 
   if (EMOJI.test(html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, ''))) warn(file, 'contains emoji');
-  if (html.includes('googleusercontent.com')) warn(file, 'hotlinked Google photo URL');
+  if (html.includes('googleusercontent.com') || html.includes('streetviewpixels-pa.googleapis.com')) warn(file, 'hotlinked Google photo URL');
+  if (html.includes('images.pexels.com')) warn(file, 'hotlinked Pexels photo URL');
+  if (/<img\b[^>]*\ssrc="[^"]*\/fallbacks\/rink-/.test(markup)) warn(file, 'listing image src is still an SVG fallback');
+  for (const img of markup.matchAll(/<img\b[^>]*\/assets\/img\/lifestyle\/[^>]*>/g)) {
+    if (!/\balt="[^"]+"/.test(img[0])) warn(file, `lifestyle image missing alt text: ${img[0].slice(0, 120)}`);
+  }
   if (html.includes('aggregateRating')) warn(file, 'third-party aggregateRating in schema');
   if (html.includes('https://iceskatingnearyou.com')) warn(file, 'absolute URL uses the apex host instead of www');
 
   for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    if (m[1].includes('/assets/img/lifestyle/') || m[1].includes('images.pexels.com') || m[1].includes('googleusercontent.com')) {
+      warn(file, 'stock or remote photo used in structured data');
+    }
     try {
       JSON.parse(m[1]);
     } catch {

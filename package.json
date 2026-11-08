@@ -12,13 +12,15 @@
     "serve": "node scripts/serve.mjs",
     "import": "node scripts/import-outscraper.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "state-shapes": "node scripts/make-state-shapes.mjs"
+    "state-shapes": "node scripts/make-state-shapes.mjs",
+    "photos:lifestyle": "node scripts/fetch-lifestyle-photos.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
     "d3-geo": "^3.1.1",
+    "sharp": "^0.35.5",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1",
     "xlsx": "^0.18.5"
