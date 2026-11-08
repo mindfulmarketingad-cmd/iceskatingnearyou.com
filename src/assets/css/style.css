@@ -224,6 +224,9 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .social a { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, .1); }
 .social a:hover { background: rgba(255, 255, 255, .2); color: #fff; }
 .footer-legal { font-size: .82rem; margin: 18px 0 0; color: #9fb0c5; }
+.footer-legal + .footer-legal { margin-top: 6px; }
+.footer-legal a { color: #d5e4f5; }
+.footer-legal a:hover { color: #fff; }
 
 /* ------------------------------------------------------------------ prose */
 .prose ul, .prose ol { padding-left: 1.3em; margin: 0 0 1.2em; }
@@ -347,7 +350,8 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 36px; align-items: start; }
 .detail-hero { margin: 0 0 18px; }
 .detail-hero img { width: 100%; border-radius: var(--radius); aspect-ratio: 16 / 9; object-fit: cover; background: var(--ice); }
-.detail-hero figcaption { font-size: .8rem; color: var(--muted); margin-top: 6px; }
+.detail-hero figcaption { font-size: .8rem; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+.detail-hero figcaption a { color: var(--blue); }
 .detail-side { position: sticky; top: 90px; }
 .side-card { padding: 20px; }
 .side-title { font-size: 1.2rem; margin: 0 0 14px; }

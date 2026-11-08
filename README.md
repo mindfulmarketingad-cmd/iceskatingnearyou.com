@@ -44,11 +44,27 @@ Recognised Outscraper columns: `name`, `category`, `type`, `subtypes`, `descript
 
 **Nothing is invented.** A missing field is shown as "Not listed" or explained in a sentence ("No opening hours are listed, so check the rink's schedule"). Rink summaries only restate fields from the listing. Feature tags (indoor, outdoor, hockey, lessons, rentals and so on) are applied only when the rink's own name, category, subtypes or description says so, or when Google's `about` attributes do.
 
-### Listing photos are illustrations
+### Listing photos are hosted Pexels scenes
 
-Outscraper's `photo` URLs (`lh3.googleusercontent.com`) are signed, expire after a few weeks, and are not a license to hotlink Google imagery. The build never writes those URLs into HTML, JSON-LD, or `dist/data`. Every rink card uses an illustration from `src/assets/img/fallbacks/`, chosen stably from the rink slug.
+Outscraper's `photo` URLs (`lh3.googleusercontent.com` and Street View thumbnails) are signed, expire, and are not a license to hotlink Google imagery. The build never writes those URLs into HTML, JSON-LD, or `dist/data`.
 
-`photo` and `photosFetchedAt` stay on the import so a future photo pipeline can use them as a reference. They are not published. A long-term source is rink-submitted or otherwise licensed photos stored in this repo (or object storage), keyed by `place_id`. Do not turn the Google URLs back on.
+Rink cards, ranked-list thumbnails, and rink-page heroes use a curated pool of Pexels photographs stored in this repo:
+
+- `data/lifestyle-photos.json` is the catalog: author, Pexels License, source page, theme (`hockey`, `outdoor`, `figure`, `indoor`, `general`), and alt text. The [Pexels License](https://www.pexels.com/license/) does not require attribution. The catalog keeps the credit anyway.
+- `src/assets/img/lifestyle/pexels-<id>.webp` is the 1200×675 detail image. `pexels-<id>-card.webp` is the 640×400 card and thumbnail. Both are committed, so a production build does not download them and does not need an API key.
+- `scripts/lib/lifestyle.mjs` assigns a photo with a stable hash of the listing id. Feature tags pick a matching pool when the listing mentions hockey, figure skating, an outdoor or seasonal rink, or an indoor rink. Other listings use the general public-skate pool. The same listing always gets the same photo.
+- Alt text describes the scene. It does not claim the stock photo is a picture of that rink. The rink page caption credits the photographer and says so again. `/photo-credits/` lists every photo. The footer links there.
+- These files are not written into `IceSkatingRink` structured data, and they are not the Open Graph image.
+- A listing whose `photo` field is already a path under `/assets/` keeps that first-party file. The SVG illustrations in `src/assets/img/fallbacks/` are only the `onerror` fallback if a hosted file is missing.
+
+`photo` and `photosFetchedAt` stay on the import as a reference. They are not published. Do not turn the Google URLs back on.
+
+To refresh the files after editing the catalog:
+
+```bash
+npm run photos:lifestyle
+npm run photos:lifestyle -- --force
+```
 
 ---
 
@@ -184,4 +200,4 @@ They stay off until you create ad units in AdSense and paste their IDs into `AD_
 - [ ] Claim the social handles, or change `SOCIAL` in `scripts/build.mjs`
 - [ ] Fill in the governing-law `[STATE]` placeholder in `src/pages/terms.html`
 - [ ] Submit `https://www.iceskatingnearyou.com/sitemap.xml` in Search Console (www is the primary host; the apex 301s to it)
-- [ ] Add licensed rink photos later. Do not hotlink Google photo URLs
+- [x] Listing cards and rink pages use hosted Pexels photos (stock scenes, not Google hotlinks). A first-party file under `/assets/` still replaces the stock photo for that listing.
