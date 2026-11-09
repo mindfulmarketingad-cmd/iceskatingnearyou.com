@@ -53,8 +53,8 @@ Rink cards, ranked-list thumbnails, and rink-page heroes use a curated pool of P
 - `data/lifestyle-photos.json` is the catalog: author, Pexels License, source page, theme (`hockey`, `outdoor`, `figure`, `indoor`, `general`), and alt text. The [Pexels License](https://www.pexels.com/license/) does not require attribution. The catalog keeps the credit anyway.
 - `src/assets/img/lifestyle/pexels-<id>.webp` is the 1200×675 detail image. `pexels-<id>-card.webp` is the 640×400 card and thumbnail. Both are committed, so a production build does not download them and does not need an API key.
 - `scripts/lib/lifestyle.mjs` assigns a photo with a stable hash of the listing id. Feature tags pick a matching pool when the listing mentions hockey, figure skating, an outdoor or seasonal rink, or an indoor rink. Other listings use the general public-skate pool. The same listing always gets the same photo.
-- Alt text describes the scene. It does not claim the stock photo is a picture of that rink. The rink page caption credits the photographer and says so again. `/photo-credits/` lists every photo. The footer links there.
-- These files are not written into `IceSkatingRink` structured data, and they are not the Open Graph image.
+- Alt text describes the scene. It does not claim the stock photo is a picture of that rink or city. The rink page caption and the outdoor-guide hero caption credit the photographer. `/photo-credits/` lists every photo. The footer links there.
+- These files are not written into `IceSkatingRink` or `CollectionPage` structured data. Rink pages keep the site-wide Open Graph image. Outdoor hub pages and the national outdoor guide use one hosted outdoor hero as the on-page image and as that page's `og:image` and `twitter:image`.
 - A listing whose `photo` field is already a path under `/assets/` keeps that first-party file. The SVG illustrations in `src/assets/img/fallbacks/` are only the `onerror` fallback if a hosted file is missing.
 
 `photo` and `photosFetchedAt` stay on the import as a reference. They are not published. Do not turn the Google URLs back on.

@@ -73,3 +73,66 @@ export function imageForListing(l, hash, ownSrc = null) {
     theme,
   };
 }
+
+/**
+ * Page-level heroes for the outdoor hubs and the national outdoor guide.
+ * Each page gets a different outdoor or festive scene from the hosted pool.
+ * Indoor arenas and outdoor hockey stay off these pages.
+ * Hero files are the catalog's 1200×675 WebP. Card files stay for listings.
+ */
+export const OUTDOOR_FEATURED_PAGES = {
+  // Night rink and Ferris wheel. The Christmas-tree file crops the ice out of the 16:9 hero.
+  '/outdoor-ice-skating/': 'pexels-30085175',
+  // Night rink under string lights.
+  '/near/new-york/outdoor-ice-rinks/': 'pexels-6289775',
+  // Skaters on an outdoor city rink.
+  '/near/chicago/outdoor-ice-rinks/': 'pexels-10556559',
+  // Outdoor skate in daylight. The festive clock-tower file crops the ice out of the hero.
+  '/near/san-francisco/outdoor-ice-rinks/': 'pexels-14906334',
+  // Daylight outdoor public skate.
+  '/near/boston/outdoor-ice-rinks/': 'pexels-3824731',
+  // Frozen lake, matching the pond listings in this circle.
+  '/near/minneapolis/outdoor-ice-rinks/': 'pexels-15494504',
+  // Night outdoor skating.
+  '/near/washington-dc/outdoor-ice-rinks/': 'pexels-10637954',
+  // Open winter ice, matching the seasonal park listings.
+  '/north-dakota/fargo/outdoor-ice-rinks/': 'pexels-30924007',
+  // Distinct from the Chicago metro hero.
+  '/illinois/chicago/outdoor-ice-rinks/': 'pexels-6712033',
+};
+
+const outdoorFeaturedIds = Object.values(OUTDOOR_FEATURED_PAGES);
+if (new Set(outdoorFeaturedIds).size !== outdoorFeaturedIds.length) {
+  throw new Error('outdoor featured photos must be unique');
+}
+
+export const HERO_WIDTH = 1200;
+export const HERO_HEIGHT = 675;
+
+function catalogPhoto(id) {
+  const all = photos || [];
+  if (!all.length) throw new Error('lifestyle photo catalog is empty');
+  const photo = all.find((item) => item.id === id);
+  if (!photo) throw new Error(`featured photo ${id} is not in the lifestyle catalog`);
+  const themes = photo.themes || [];
+  if (!themes.includes('outdoor')) throw new Error(`${id} is not tagged outdoor`);
+  if (themes.includes('hockey')) throw new Error(`${id} is an outdoor hockey scene`);
+  return photo;
+}
+
+/** Hosted hero for one outdoor hub, or null when the path has no featured photo. */
+export function featuredImageForPath(path) {
+  const id = OUTDOOR_FEATURED_PAGES[path];
+  if (!id) return null;
+  const photo = catalogPhoto(id);
+  return {
+    id: photo.id,
+    card: `/assets/img/lifestyle/${photo.cardFile}`,
+    hero: `/assets/img/lifestyle/${photo.file}`,
+    alt: photo.alt,
+    author: photo.author || null,
+    sourceUrl: photo.sourceUrl,
+    width: HERO_WIDTH,
+    height: HERO_HEIGHT,
+  };
+}

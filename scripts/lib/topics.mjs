@@ -7,6 +7,7 @@ import {
   outdoorIceEvidence, outdoorEditorial, outdoorHeading, outdoorLede, outdoorDescriptionLeads,
   outdoorExtraFaq, nationalGuideBody, nationalGuideFaq, OUTDOOR_GUIDE_PATH,
 } from './outdoor.mjs';
+import { featuredImageForPath } from './lifestyle.mjs';
 
 const MIN_TOPIC = 3;
 
@@ -718,6 +719,7 @@ ${plan.extraLinks.map((l) => `  <li><a href="${l.href}">${esc(l.label)}</a>${l.n
   <p class="data-note">Listing data from public Google business profiles, last updated ${DATA_DATE_LABEL}. <a href="/contact/">Report a correction</a>.</p>
 </div>`;
 
+    const featuredImage = featuredImageForPath(plan.path);
     const meta = {
       path: plan.path,
       title: plan.title,
@@ -730,7 +732,11 @@ ${plan.extraLinks.map((l) => `  <li><a href="${l.href}">${esc(l.label)}</a>${l.n
       nav: plan.cityName ? 'states' : 'find',
       featuredState: plan.stateName || null,
       ogDescription: plan.description,
-      ogImageAlt: plan.h1,
+      ogImage: featuredImage ? `${SITE_URL}${featuredImage.hero}` : undefined,
+      ogImageAlt: featuredImage ? featuredImage.alt : plan.h1,
+      ogImageWidth: featuredImage ? featuredImage.width : undefined,
+      ogImageHeight: featuredImage ? featuredImage.height : undefined,
+      featuredImage,
       trail: plan.trail,
     };
     const jsonld = [

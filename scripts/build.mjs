@@ -888,15 +888,36 @@ function splitLongParagraphs(html) {
   });
 }
 
+function featuredFigure(image) {
+  if (!image) return '';
+  const credit = image.author
+    ? `Photo by <a href="${attr(image.sourceUrl)}" rel="noopener noreferrer">${esc(image.author)}</a>`
+    : 'Photo';
+  return `<figure class="hub-hero-img">
+      <img src="${attr(image.hero)}" alt="${attr(image.alt)}" width="${image.width}" height="${image.height}" fetchpriority="high" decoding="async">
+      <figcaption>${credit} on <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a>. A stock photo of outdoor ice skating, not a photograph of a specific rink.</figcaption>
+    </figure>`;
+}
+
 function layoutContent(meta, body) {
   const layout = meta.layout || 'prose';
   body = splitLongParagraphs(body);
   if (layout === 'raw') return body;
+  const figure = featuredFigure(meta.featuredImage);
+  const heading = figure
+    ? `<div class="hub-hero-inner">
+      <div>
+        <h1>${esc(meta.h1 || meta.title)}</h1>
+        ${meta.lede ? `<p class="lede">${meta.lede}</p>` : ''}
+      </div>
+      ${figure}
+    </div>`
+    : `<h1>${esc(meta.h1 || meta.title)}</h1>
+    ${meta.lede ? `<p class="lede">${meta.lede}</p>` : ''}`;
   const head = `<div class="page-head">
   <div class="${layout === 'wide' ? 'wrap' : 'wrap-narrow'}">
     ${breadcrumbs(meta.trail)}
-    <h1>${esc(meta.h1 || meta.title)}</h1>
-    ${meta.lede ? `<p class="lede">${meta.lede}</p>` : ''}
+    ${heading}
   </div>
 </div>`;
   return `${head}
@@ -923,6 +944,8 @@ function render(meta, body, opts = {}) {
     '{{OG_DESCRIPTION}}': attr(meta.ogDescription || meta.description),
     '{{OG_IMAGE}}': meta.ogImage || `${SITE_URL}/assets/img/og-image.jpg`,
     '{{OG_IMAGE_ALT}}': attr(meta.ogImageAlt || meta.ogTitle || meta.title),
+    '{{OG_IMAGE_WIDTH}}': String(meta.ogImageWidth || 1200),
+    '{{OG_IMAGE_HEIGHT}}': String(meta.ogImageHeight || 630),
     '{{CANONICAL}}': SITE_URL + meta.path,
     '{{ROBOTS}}': meta.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1',
     '{{SITE_URL}}': SITE_URL,
@@ -1746,11 +1769,11 @@ for (const page of staticPages) {
     path: '/photo-credits/',
     title: 'Photo Credits | Ice Skating Near You',
     description: fitDescription(
-      'Photographer credits for the Pexels ice skating photos on rink cards and rink pages. These scenes are not pictures of a specific rink.',
+      'Photographer credits for the Pexels photos on rink cards, rink pages, and outdoor guides. These scenes are not pictures of a specific rink.',
       ['Hosted on this site.', 'See the Pexels License.', 'Free to view.']
     ),
     h1: 'Photo credits',
-    lede: 'The photographs on rink cards and rink pages are free-licensed ice skating scenes we host ourselves. They are not photographs of the rink named on the page.',
+    lede: 'The photographs on rink cards, rink pages, and outdoor guides are free-licensed ice skating scenes we host ourselves. They are not photographs of a specific rink.',
     layout: 'prose',
     nav: '',
     trail: [{ label: 'Photo credits' }],
@@ -1762,7 +1785,7 @@ for (const page of staticPages) {
     byAuthor.get(name).push(photo);
   }
   const groups = [...byAuthor.entries()].sort((a, b) => a[0].localeCompare(b[0], 'en'));
-  const body = `<p>Listing photos come from <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a> and are stored on this site as WebP files. The <a href="https://www.pexels.com/license/" rel="noopener noreferrer">Pexels License</a> does not require credit. We name the photographer anyway. Nothing in this list is an official photo of a rink in the directory.</p>
+  const body = `<p>Listing photos and the heroes on outdoor guides come from <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a> and are stored on this site as WebP files. The <a href="https://www.pexels.com/license/" rel="noopener noreferrer">Pexels License</a> does not require credit. We name the photographer anyway. Nothing in this list is an official photo of a rink in the directory.</p>
 ${groups.map(([author, items]) => `<h2>${esc(author)}</h2>
 <ul>
 ${items.map((p) => `  <li><a href="${attr(p.sourceUrl)}" rel="noopener noreferrer">${esc(p.alt)}</a></li>`).join('\n')}

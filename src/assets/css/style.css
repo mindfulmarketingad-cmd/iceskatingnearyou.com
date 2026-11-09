@@ -252,9 +252,13 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 
 /* ------------------------------------------------------------ hubs/tables */
 .hub-hero { background: linear-gradient(180deg, var(--ice-50), #fff); padding: 26px 0 36px; border-bottom: 1px solid var(--line); }
-.hub-hero-inner { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: center; }
-.hub-hero-img img { border-radius: var(--radius); box-shadow: var(--shadow-md); }
-@media (max-width: 800px) { .hub-hero-inner { grid-template-columns: 1fr; } }
+.hub-hero-inner { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.hub-hero-inner .lede { max-width: none; }
+.hub-hero-img { margin: 0; }
+.hub-hero-img img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius); box-shadow: var(--shadow-md); }
+.hub-hero-img figcaption { font-size: .8rem; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+.hub-hero-img figcaption a { color: var(--blue); }
+@media (max-width: 800px) { .hub-hero-inner { grid-template-columns: 1fr; gap: 18px; } }
 .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; margin: 12px 0 18px; }
 .data-table { font-size: .92rem; line-height: 1.5; }
 .data-table th, .data-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }

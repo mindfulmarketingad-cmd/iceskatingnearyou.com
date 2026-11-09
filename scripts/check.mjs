@@ -18,10 +18,13 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { featuredImageForPath, loadLifestylePhotos, OUTDOOR_FEATURED_PAGES } from './lib/lifestyle.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 const SITE_URL = 'https://www.iceskatingnearyou.com';
+loadLifestylePhotos(ROOT);
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const ADS_TXT = 'google.com, pub-9332749804326149, DIRECT, f08c47fec0942fa0';
 const EMOJI = /\p{Extended_Pictographic}/u;
 
@@ -158,6 +161,39 @@ const ads = readFileSync(join(DIST, 'ads.txt'), 'utf8').trim();
 if (ads !== ADS_TXT) errors.push(`ads.txt is "${ads}"`);
 if (!/Sitemap: https:\/\/www\.iceskatingnearyou\.com\/sitemap\.xml/.test(readFileSync(join(DIST, 'robots.txt'), 'utf8'))) errors.push('robots.txt has no www sitemap line');
 if (sitemap.includes('googleusercontent.com') || sitemap.includes('https://iceskatingnearyou.com/')) errors.push('sitemap.xml contains a non-www or Google photo URL');
+
+/* Outdoor hubs need a unique hosted hero, not the site-wide social image. */
+const seenHeroes = new Set();
+for (const pagePath of Object.keys(OUTDOOR_FEATURED_PAGES)) {
+  const file = join(DIST, pagePath, 'index.html');
+  if (!existsSync(file)) {
+    errors.push(`${pagePath}: outdoor page is missing`);
+    continue;
+  }
+  const html = readFileSync(file, 'utf8');
+  const image = featuredImageForPath(pagePath);
+  const absolute = `${SITE_URL}${image.hero}`;
+  if (seenHeroes.has(image.hero)) errors.push(`${pagePath}: featured photo is reused`);
+  seenHeroes.add(image.hero);
+  if (!html.includes(`class="hub-hero-img"`) || !html.includes(`src="${image.hero}"`)) {
+    errors.push(`${pagePath}: missing on-page featured image ${image.hero}`);
+  }
+  if (!html.includes(`alt="${esc(image.alt)}"`)) errors.push(`${pagePath}: featured image alt does not describe the scene`);
+  if (image.author && !html.includes(`>${esc(image.author)}</a>`)) errors.push(`${pagePath}: photographer credit is missing`);
+  const og = (html.match(/<meta property="og:image" content="([^"]*)"/) || [])[1];
+  const tw = (html.match(/<meta name="twitter:image" content="([^"]*)"/) || [])[1];
+  if (og !== absolute) errors.push(`${pagePath}: og:image is ${og || 'missing'}`);
+  if (tw !== absolute) errors.push(`${pagePath}: twitter:image is ${tw || 'missing'}`);
+  if (html.includes('/assets/img/og-image.jpg')) errors.push(`${pagePath}: still uses the generic og-image.jpg`);
+  const width = (html.match(/<meta property="og:image:width" content="([^"]*)"/) || [])[1];
+  const height = (html.match(/<meta property="og:image:height" content="([^"]*)"/) || [])[1];
+  if (width !== String(image.width) || height !== String(image.height)) {
+    errors.push(`${pagePath}: og:image dimensions are ${width}x${height}, expected ${image.width}x${image.height}`);
+  }
+  if (!html.includes('"@type":"CollectionPage"') && !html.includes('"@type": "CollectionPage"')) {
+    errors.push(`${pagePath}: CollectionPage schema is missing`);
+  }
+}
 
 console.log(`Checked ${htmlFiles.length} HTML files, ${linkCount} internal links, ${sitemapUrls.length} sitemap URLs.`);
 if (errors.length) {
