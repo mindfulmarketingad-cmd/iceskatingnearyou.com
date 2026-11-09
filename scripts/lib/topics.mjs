@@ -3,6 +3,10 @@
  * listings qualify, so the title, intro, list, and FAQ are all backed by data.
  */
 import { METROS, METRO_RADIUS_MILES } from './metros.mjs';
+import {
+  outdoorIceEvidence, outdoorEditorial, outdoorHeading, outdoorLede, outdoorDescriptionLeads,
+  outdoorExtraFaq, nationalGuideBody, nationalGuideFaq, OUTDOOR_GUIDE_PATH,
+} from './outdoor.mjs';
 
 const MIN_TOPIC = 3;
 
@@ -42,6 +46,7 @@ export function buildTopicPages(ctx) {
     indoorCity: 0, outdoorCity: 0, hockeyCity: 0, lessonsCity: 0, figureCity: 0,
     openLateState: 0, openWeekendState: 0, openLateCity: 0, openWeekendCity: 0,
     metro: 0, christmas: 0, nearIndex: 0, openLateNational: 0, openWeekendNational: 0,
+    outdoorMetro: 0, outdoorCitySupported: 0, outdoorGuide: 0,
   };
   const linksByState = new Map();
   const linksByCity = new Map();
@@ -250,10 +255,11 @@ export function buildTopicPages(ctx) {
     }
   }
 
-  const metros = METROS.map((metro) => {
+  const allMetros = METROS.map((metro) => {
     const items = rank(listings.filter((l) => distanceMiles(metro.lat, metro.lng, l.lat, l.lng) <= METRO_RADIUS_MILES));
     return { ...metro, items };
-  }).filter((metro) => metro.items.length >= MIN_TOPIC);
+  });
+  const metros = allMetros.filter((metro) => metro.items.length >= MIN_TOPIC);
 
   for (const metro of metros) {
     const path = `/near/${metro.slug}/`;
@@ -362,6 +368,246 @@ export function buildTopicPages(ctx) {
     });
   }
 
+  const publishedMetro = new Set(metros.map((metro) => metro.slug));
+  const outdoorReport = { added: [], skipped: [] };
+  const outdoorHubs = [];
+  const outdoorMethod = 'A rink is listed only when its own name or description says the ice is outdoors, names a skating ribbon, ice trail, or skating pond, or names a seasonal or holiday rink without describing the ice as indoor. An outdoor pool, playground, or shop category does not count. Holiday pop-ups change dates every year. Opening dates and ticket prices are not in this data, so confirm both with the rink.';
+  const reportIds = new Set(['san-francisco', 'atlanta', 'columbus', 'jacksonville', 'detroit', 'new-york', 'boston', 'minneapolis', 'denver', 'washington-dc', 'los-angeles', 'chicago', 'baltimore', 'salt-lake-city']);
+  const yerba = listings.find((l) => l.name === 'Yerba Buena Ice Skating & Bowling Center') || null;
+
+  const sameIds = (a, b) => a.length === b.length && a.every((l) => b.some((o) => o.id === l.id));
+  const christmasPathFor = (slug) => {
+    const path = `/near/${slug}/christmas-ice-skating/`;
+    return plans.some((plan) => plan.path === path) ? path : null;
+  };
+  const placeShell = (metro, supported) => ({
+    name: metro.name,
+    slug: metro.slug,
+    items: supported,
+    nearCount: metro.items.length,
+    nearPath: publishedMetro.has(metro.slug) ? `/near/${metro.slug}/` : null,
+    christmasPath: christmasPathFor(metro.slug),
+    hubPath: null,
+    stateLinks: [...new Set(supported.map((l) => l.state))].map((stateName) => ({ href: statePath(stateName), label: `All rinks in ${stateName}` })),
+  });
+  const places = {};
+
+  for (const metro of allMetros) {
+    const supported = rank(metro.items.filter((l) => outdoorIceEvidence(l)));
+    const holiday = metro.items.filter(isHoliday);
+    const shell = placeShell(metro, supported);
+    places[metro.slug] = shell;
+    if (supported.length < MIN_TOPIC) {
+      if (reportIds.has(metro.slug) || supported.length > 0) {
+        outdoorReport.skipped.push({
+          name: metro.name,
+          reason: `${supported.length} listing${supported.length === 1 ? '' : 's'} whose name or description supports outdoor or holiday ice, short of ${MIN_TOPIC}`,
+        });
+      }
+      continue;
+    }
+    if (sameIds(supported, holiday)) {
+      outdoorReport.skipped.push({ name: metro.name, reason: `same ${supported.length} listings as the Christmas page, and none add an outdoor wording the Christmas page lacks` });
+      continue;
+    }
+    const path = `/near/${metro.slug}/outdoor-ice-rinks/`;
+    const h1 = outdoorHeading('metro', metro.name, supported);
+    const stateNamesHere = [...new Set(supported.map((l) => l.state))];
+    shell.hubPath = path;
+    addPlan({
+      countKey: 'outdoorMetro',
+      kind: 'outdoor-metro',
+      path,
+      stateName: metro.state,
+      items: supported,
+      singleState: stateNamesHere.length === 1,
+      priority: '0.64',
+      title: fitTitle(`${h1} (${supported.length})`, h1, `Outdoor Ice Near ${metro.name}`),
+      h1,
+      ogTitle: h1,
+      description: fitDescription(outdoorDescriptionLeads(metro.name, supported, YEAR), [`Updated ${YEAR}.`, 'Confirm with the rink.', 'Holiday hours vary.']),
+      lede: outdoorLede(metro.slug, metro.name, supported, YEAR),
+      method: outdoorMethod,
+      editorial: outdoorEditorial({
+        id: metro.slug,
+        items: supported,
+        esc,
+        year: YEAR,
+        cityTagPath: metro.slug === 'chicago' ? `${cityPath('Illinois', 'Chicago')}outdoor-ice-rinks/` : null,
+        christmasPath: shell.christmasPath,
+        guidePath: OUTDOOR_GUIDE_PATH,
+        yerba: metro.slug === 'san-francisco' ? yerba : null,
+      }),
+      extraFaq: outdoorExtraFaq(metro.name, supported, YEAR, DATA_DATE_LABEL),
+      crumb: 'Outdoor ice rinks',
+      listHeading: `${supported.length} outdoor and holiday listings near ${metro.name}`,
+      intro: outdoorLede(metro.slug, metro.name, supported, YEAR),
+      trail: [
+        { label: 'Near a city', href: '/near/' },
+        { label: metro.name, href: shell.nearPath },
+        { label: 'Outdoor ice rinks' },
+      ],
+      related: [
+        { href: OUTDOOR_GUIDE_PATH, label: 'Outdoor ice skating near me' },
+        shell.nearPath ? { href: shell.nearPath, label: `All rinks near ${metro.name}` } : null,
+        shell.christmasPath ? { href: shell.christmasPath, label: `Christmas skating near ${metro.name}` } : null,
+        metro.slug === 'chicago' ? { href: `${cityPath('Illinois', 'Chicago')}outdoor-ice-rinks/`, label: 'Outdoor-tagged rinks in Chicago' } : null,
+        ...stateNamesHere.map((stateName) => ({ href: statePath(stateName), label: `All rinks in ${stateName}` })),
+        ...stateNamesHere.map((stateName) => {
+          const href = findStateHref('outdoor-ice-rinks', stateName);
+          return href && href.includes(`/${stateSlug(stateName)}/`) ? { href, label: `Outdoor tag in ${stateName}` } : null;
+        }),
+      ].filter(Boolean),
+      faqSeed: { what: 'outdoor and holiday rinks', where: metro.name },
+    });
+    const hub = {
+      id: metro.slug,
+      name: metro.name,
+      path,
+      nearPath: shell.nearPath,
+      christmasPath: shell.christmasPath,
+      states: stateNamesHere,
+      items: supported,
+    };
+    outdoorHubs.push(hub);
+    outdoorReport.added.push({ name: metro.name, path, count: supported.length, kind: 'metro' });
+    for (const l of supported) pushLink(linksByCity, `${l.state}|${l.city}`, path, `Outdoor rinks near ${metro.name}`);
+    for (const stateName of stateNamesHere) pushLink(linksByState, stateName, path, `Outdoor rinks near ${metro.name}`);
+  }
+
+  let fargoHub = null;
+  for (const [key, items] of byCity) {
+    const supported = rank(items.filter((l) => outdoorIceEvidence(l)));
+    if (supported.length < MIN_TOPIC) continue;
+    const [stateName, cityName] = key.split('|');
+    const path = `${cityPath(stateName, cityName)}outdoor-ice-rinks/`;
+    if (plans.some((plan) => plan.path === path)) continue;
+    const code = codeOf(stateName);
+    const place = `${cityName}, ${code}`;
+    const h1 = outdoorHeading('city', place, supported);
+    const pageId = cityName === 'Fargo' ? 'fargo' : cityName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    addPlan({
+      countKey: 'outdoorCitySupported',
+      kind: 'outdoor-city',
+      path,
+      stateName,
+      cityName,
+      items: supported,
+      singleState: true,
+      priority: '0.55',
+      title: fitTitle(`${h1} (${supported.length})`, h1, `Seasonal Ice in ${cityName}`),
+      h1,
+      description: fitDescription(outdoorDescriptionLeads(place, supported, YEAR), [`Updated ${YEAR}.`, 'Confirm with the rink.', 'Park ice varies.']),
+      lede: outdoorLede(pageId, place, supported, YEAR),
+      method: outdoorMethod,
+      editorial: outdoorEditorial({
+        id: pageId,
+        items: supported,
+        esc,
+        year: YEAR,
+        guidePath: OUTDOOR_GUIDE_PATH,
+      }),
+      extraFaq: outdoorExtraFaq(place, supported, YEAR, DATA_DATE_LABEL),
+      crumb: 'Outdoor ice rinks',
+      listHeading: `${supported.length} seasonal park listings in ${cityName}`,
+      intro: outdoorLede(pageId, place, supported, YEAR),
+      trail: [
+        { label: 'States', href: '/states/' },
+        { label: stateName, href: statePath(stateName) },
+        { label: cityName, href: cityPath(stateName, cityName) },
+        { label: 'Outdoor ice rinks' },
+      ],
+      related: [
+        { href: OUTDOOR_GUIDE_PATH, label: 'Outdoor ice skating near me' },
+        { href: cityPath(stateName, cityName), label: `All rinks in ${cityName}` },
+        { href: statePath(stateName), label: `All rinks in ${stateName}` },
+        findStateHref('outdoor-ice-rinks', stateName) && findStateHref('outdoor-ice-rinks', stateName).includes(`/${stateSlug(stateName)}/`)
+          ? { href: findStateHref('outdoor-ice-rinks', stateName), label: `Outdoor tag in ${stateName}` }
+          : null,
+      ].filter(Boolean),
+      faqSeed: { what: 'seasonal park rinks', where: place },
+    });
+    pushLink(linksByCity, key, path, 'Outdoor ice rinks');
+    pushLink(linksByState, stateName, path, `Outdoor ice rinks in ${cityName}`);
+    outdoorReport.added.push({ name: `${cityName}, ${stateName}`, path, count: supported.length, kind: 'city' });
+    if (cityName === 'Fargo') {
+      fargoHub = {
+        path,
+        items: supported,
+        stateLinks: [{ href: statePath(stateName), label: `All rinks in ${stateName}` }, { href: cityPath(stateName, cityName), label: `All rinks in ${cityName}` }],
+      };
+    }
+  }
+
+  const hubIds = new Set(outdoorHubs.flatMap((hub) => hub.items.map((l) => l.id)));
+  if (fargoHub) for (const l of fargoHub.items) hubIds.add(l.id);
+  const otherSupported = rank(listings.filter((l) => outdoorIceEvidence(l) && !hubIds.has(l.id)));
+  const othersByState = [];
+  for (const stateName of [...new Set(otherSupported.map((l) => l.state))].sort()) {
+    const findHref = findStateHref('outdoor-ice-rinks', stateName);
+    othersByState.push({
+      state: stateName,
+      stateHref: statePath(stateName),
+      findHref: findHref && findHref.includes(`/${stateSlug(stateName)}/`) ? findHref : null,
+      items: otherSupported.filter((l) => l.state === stateName),
+    });
+  }
+
+  const bySlug = new Map(allMetros.map((metro) => [metro.slug, metro]));
+  const milesFrom = (slug, listing) => Math.max(1, Math.round(distanceMiles(bySlug.get(slug).lat, bySlug.get(slug).lng, listing.lat, listing.lng)));
+  const howelsen = listings.find((l) => l.name === 'Howelsen Outdoor Ice Rink') || null;
+  const springfield = listings.find((l) => l.name.startsWith('Greater Springfield Partnership Outdoor')) || null;
+  const guideItems = rank(outdoorHubs.flatMap((hub) => hub.items)
+    .filter((l, i, arr) => arr.findIndex((o) => o.id === l.id) === i));
+  const guideH1 = `Outdoor Ice Skating Near Me: Outdoor Rinks and Holiday Rinks (${YEAR})`;
+  addPlan({
+    countKey: 'outdoorGuide',
+    kind: 'outdoor-guide',
+    path: OUTDOOR_GUIDE_PATH,
+    items: guideItems,
+    singleState: false,
+    priority: '0.8',
+    title: fitTitle(`Outdoor Ice Skating Near Me (${YEAR} Guide)`, `Outdoor Ice Skating Near Me (${YEAR})`, 'Outdoor Ice Skating Near Me'),
+    h1: guideH1,
+    ogTitle: guideH1,
+    noFeatured: true,
+    description: fitDescription(
+      `Outdoor ice skating near me for the ${YEAR} season. Hubs list only rinks whose listings say outdoor or holiday ice. Confirm hours and prices with the rink.`
+    ),
+    lede: `National guide for the ${YEAR} holiday season. A rink is included only when its own listing supports outdoor ice or a seasonal holiday rink. Opening dates and ticket prices are not in our data.`,
+    method: outdoorMethod,
+    skipListTools: true,
+    bodyHtml: nationalGuideBody({
+      esc,
+      year: YEAR,
+      places,
+      fargo: fargoHub,
+      othersByState,
+      asides: {
+        yerba,
+        campus: listings.find((l) => l.name === 'The Rink at Campus Martius') || null,
+        annArbor: listings.find((l) => l.name.includes('Veterans Memorial Park Pool')) || null,
+        petoskey: listings.find((l) => l.name === 'Petoskey Winter Sports Park') || null,
+        howelsen: howelsen ? { listing: howelsen, miles: milesFrom('denver', howelsen) } : null,
+        springfield: springfield ? { listing: springfield, miles: milesFrom('columbus', springfield) } : null,
+        skateTheStation: listings.find((l) => l.name === 'Skate the Station') || null,
+        jacksonvilleRink: (bySlug.get('jacksonville')?.items || [])[0] || null,
+      },
+    }),
+    faqOverride: nationalGuideFaq(YEAR, DATA_DATE_LABEL),
+    trail: [{ label: 'Find', href: '/find/' }, { label: 'Outdoor ice skating' }],
+    related: [
+      { href: '/find/outdoor-ice-rinks/', label: 'Outdoor tag index' },
+      { href: '/near/', label: 'Metro hubs' },
+      { href: '/states/', label: 'Browse by state' },
+    ],
+    faqSeed: { what: 'outdoor ice rinks', where: 'the United States' },
+  });
+
+  for (const stateName of new Set(listings.filter((l) => outdoorIceEvidence(l)).map((l) => l.state))) {
+    pushLink(linksByState, stateName, OUTDOOR_GUIDE_PATH, 'Outdoor ice skating near me');
+  }
+
   const liveTopic = new Set(plans.map((plan) => plan.path));
   for (const plan of plans) {
     plan.related = (plan.related || []).filter((link) => {
@@ -388,6 +634,23 @@ export function buildTopicPages(ctx) {
     }
   }
 
+  const planByPath = new Map(plans.map((plan) => [plan.path, plan]));
+  for (const plan of plans) {
+    if (plan.kind === 'metro' || plan.kind === 'christmas' || plan.kind === 'near-index' || plan.kind === 'outdoor-metro' || plan.kind === 'outdoor-city') {
+      plan.related.unshift({ href: OUTDOOR_GUIDE_PATH, label: 'Outdoor ice skating near me' });
+    }
+  }
+  for (const hub of outdoorHubs) {
+    const near = hub.nearPath ? planByPath.get(hub.nearPath) : null;
+    if (near) near.related.unshift({ href: hub.path, label: `Outdoor rinks near ${hub.name}` });
+    const xmas = hub.christmasPath ? planByPath.get(hub.christmasPath) : null;
+    if (xmas) xmas.related.unshift({ href: hub.path, label: `Outdoor rinks near ${hub.name}` });
+    if (hub.id === 'chicago') {
+      const cityTag = planByPath.get(`${cityPath('Illinois', 'Chicago')}outdoor-ice-rinks/`);
+      if (cityTag) cityTag.related.unshift({ href: hub.path, label: 'Outdoor rinks near Chicago' });
+    }
+  }
+
   const searchEntries = [];
   for (const plan of plans) {
     const shown = plan.items;
@@ -396,8 +659,10 @@ export function buildTopicPages(ctx) {
     const where = plan.faqSeed.where;
     const what = plan.faqSeed.what;
     const faq = [];
-    if (!plan.skipListCountFaq && top) {
-      const near = plan.kind === 'metro' || plan.kind === 'christmas';
+    if (plan.faqOverride) {
+      faq.push(...plan.faqOverride);
+    } else if (!plan.skipListCountFaq && top) {
+      const near = plan.kind === 'metro' || plan.kind === 'christmas' || plan.kind === 'outdoor-metro';
       faq.push({
         q: plan.allCount ? `How many ${what} do you list?` : `How many ${what} are ${near ? 'near' : 'in'} ${where}?`,
         a: plan.allCount
@@ -410,24 +675,37 @@ export function buildTopicPages(ctx) {
         a: `Each hub includes ice rinks within ${METRO_RADIUS_MILES} miles of downtown, in a straight line. ${metros.length} metros have at least ${MIN_TOPIC} rinks inside that circle.`,
       });
     }
-    if (top && top.rating) {
+    if (!plan.faqOverride) {
+      if (top && top.rating) {
+        faq.push({
+          q: `Which rink ranks first?`,
+          a: `${top.name} in ${top.city}, ${top.stateCode} ranks first here, with a ${top.rating.toFixed(1)} Google rating from ${num(top.reviews || 0)} ${plural(top.reviews || 0, 'review', 'reviews')}. Rankings weigh the rating by how many reviews sit behind it.`,
+        });
+      }
       faq.push({
-        q: `Which rink ranks first?`,
-        a: `${top.name} in ${top.city}, ${top.stateCode} ranks first here, with a ${top.rating.toFixed(1)} Google rating from ${num(top.reviews || 0)} ${plural(top.reviews || 0, 'review', 'reviews')}. Rankings weigh the rating by how many reviews sit behind it.`,
+        q: 'Which of these list Sunday hours?',
+        a: sunday.length
+          ? `${sunday.length} of the ${shown.length} rinks on this page list Sunday hours, including ${joinNatural(sunday.slice(0, 3).map((l) => l.name))}. Public sessions inside those hours change, so confirm with the rink.`
+          : `None of the rinks on this page list Sunday hours right now. Hours change with the season, so check with the rink.`,
       });
+      faq.push({
+        q: 'How do you decide what appears here?',
+        a: `${plan.method} Details come from each rink's public Google listing as of ${DATA_DATE_LABEL}.`,
+      });
+      if (plan.extraFaq?.length) faq.unshift(...plan.extraFaq);
     }
-    faq.push({
-      q: 'Which of these list Sunday hours?',
-      a: sunday.length
-        ? `${sunday.length} of the ${shown.length} rinks on this page list Sunday hours, including ${joinNatural(sunday.slice(0, 3).map((l) => l.name))}. Public sessions inside those hours change, so confirm with the rink.`
-        : `None of the rinks on this page list Sunday hours right now. Hours change with the season, so check with the rink.`,
-    });
-    faq.push({
-      q: 'How do you decide what appears here?',
-      a: `${plan.method} Details come from each rink's public Google listing as of ${DATA_DATE_LABEL}.`,
-    });
 
-    const body = `<p>${esc(plan.intro)}</p>
+    const introHtml = plan.editorial
+      ? `<div class="prose">${plan.editorial}</div>`
+      : `<p>${esc(plan.intro)}</p>`;
+    const body = plan.bodyHtml
+      ? `${relatedNav(plan.related, esc)}
+${plan.bodyHtml}
+<div class="prose">
+  ${faqBlock(faq)}
+  <p class="data-note">Listing data from public Google business profiles, last updated ${DATA_DATE_LABEL}. <a href="/contact/">Report a correction</a>.</p>
+</div>`
+      : `${introHtml}
 ${relatedNav(plan.related, esc)}
 <h2>${esc(plan.listHeading)}</h2>
 ${listSection(shown, { stateName: plan.singleState ? plan.stateName : null, peers: shown, headingTag: 'h3' })}
@@ -445,11 +723,12 @@ ${plan.extraLinks.map((l) => `  <li><a href="${l.href}">${esc(l.label)}</a>${l.n
       title: plan.title,
       description: plan.description,
       h1: plan.h1,
-      lede: esc(plan.method),
+      lede: esc(plan.lede || plan.method),
+      ogTitle: plan.ogTitle || plan.h1,
+      noFeatured: Boolean(plan.noFeatured),
       layout: 'wide',
       nav: plan.cityName ? 'states' : 'find',
       featuredState: plan.stateName || null,
-      ogTitle: plan.h1,
       ogDescription: plan.description,
       ogImageAlt: plan.h1,
       trail: plan.trail,
@@ -459,7 +738,7 @@ ${plan.extraLinks.map((l) => `  <li><a href="${l.href}">${esc(l.label)}</a>${l.n
       itemListJsonLd(shown),
       faqJsonLd(faq),
     ];
-    writePage(plan.path, render(meta, body, { jsonld, scripts: ctx.listToolScripts() }));
+    writePage(plan.path, render(meta, body, { jsonld, scripts: plan.skipListTools ? '' : ctx.listToolScripts() }));
     addToSitemap(plan.path, plan.priority, DATA_DATE);
     pageIndex.push({ path: plan.path, title: plan.h1, group: 'Topics' });
     searchEntries.push({ t: 'Topic', n: plan.h1, p: plan.description, u: plan.path });
@@ -474,10 +753,20 @@ ${plan.extraLinks.map((l) => `  <li><a href="${l.href}">${esc(l.label)}</a>${l.n
     ? `<ul class="link-grid">
 ${metros.map((m) => `  <li><a href="/near/${m.slug}/">${esc(m.name)}</a> <span>${m.items.length}</span></li>`).join('\n')}
 </ul>
-<p class="section-sub"><a href="/near/">All metro hubs</a> <span aria-hidden="true">&middot;</span> <a href="/open/late/">Rinks open late</a> <span aria-hidden="true">&middot;</span> <a href="/open/weekends/">Open on weekends</a></p>`
+<p class="section-sub"><a href="/near/">All metro hubs</a> <span aria-hidden="true">&middot;</span> <a href="${OUTDOOR_GUIDE_PATH}">Outdoor ice skating near me</a> <span aria-hidden="true">&middot;</span> <a href="/open/late/">Rinks open late</a> <span aria-hidden="true">&middot;</span> <a href="/open/weekends/">Open on weekends</a></p>`
     : '';
 
-  return { linksByState, linksByCity, counts, searchEntries, homeHtml, plans: plans.length };
+  return {
+    linksByState,
+    linksByCity,
+    counts,
+    searchEntries,
+    homeHtml,
+    plans: plans.length,
+    outdoorHubs,
+    outdoorGuidePath: OUTDOOR_GUIDE_PATH,
+    outdoorReport,
+  };
 }
 
 function relatedNav(links, esc) {

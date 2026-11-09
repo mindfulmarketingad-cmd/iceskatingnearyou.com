@@ -23,6 +23,8 @@
  *   /open/late/  /open/weekends/        hours hubs, national and per state
  *   /near/  /near/<metro>/              rinks within 30 miles of a major downtown
  *   /near/<metro>/christmas-ice-skating/
+ *   /near/<metro>/outdoor-ice-rinks/   wording-checked outdoor and holiday hubs
+ *   /outdoor-ice-skating/              national outdoor and holiday guide
  *
  * Old "/blog/best-*-in-<state>/" list posts are not generated. They 301 to
  * the state page from vercel.json so they stop competing with /states/ and /find/.
@@ -1216,8 +1218,12 @@ for (const stateName of stateNames) {
   const outdoorish = items.filter((l) => (l.features || []).some((f) => f === 'Outdoor rink' || f === 'Seasonal rink')).length;
 
   const stateLinks = topics.linksByState.get(stateName) || [];
-  const stateHubs = stateLinks.filter((l) => l.href.startsWith('/open/') || l.href.startsWith('/near/'));
-  const stateCityTopics = stateLinks.filter((l) => !l.href.startsWith('/open/') && !l.href.startsWith('/near/')).slice(0, 8);
+  const isOutdoorGuide = (href) => href === '/outdoor-ice-skating/';
+  const stateHubs = stateLinks.filter((l) => l.href.startsWith('/open/') || l.href.startsWith('/near/') || isOutdoorGuide(l.href));
+  const stateCityTopics = stateLinks
+    .filter((l) => !l.href.startsWith('/open/') && !l.href.startsWith('/near/') && !isOutdoorGuide(l.href))
+    .sort((a, b) => Number(b.href.includes('/outdoor-ice-rinks/')) - Number(a.href.includes('/outdoor-ice-rinks/')))
+    .slice(0, 8);
   const stateGuides = [
     ...stateHubs,
     ...stateCityTopics,
@@ -1537,10 +1543,19 @@ for (const { c: cat, n } of findCounts) {
     nav: 'find',
     trail: [{ label: 'Find', href: '/find/' }, { label: cat.name }],
   };
+  const outdoorHubBlock = cat.slug === 'outdoor-ice-rinks' && topics.outdoorHubs?.length
+    ? `<h2>Outdoor and holiday hubs</h2>
+<p>These pages keep a rink only when its own name or description supports outdoor ice or a holiday rink. The <a href="/outdoor-ice-skating/">outdoor ice skating near me guide</a> explains which cities were skipped because the listings were too thin, and it tells you to confirm hours and prices with the rink.</p>
+<ul class="link-grid">
+${topics.outdoorHubs.map((hub) => `  <li><a href="${hub.path}">${esc(hub.name)}</a> <span>${hub.items.length}</span></li>`).join('\n')}
+${topics.outdoorReport.added.filter((item) => item.kind === 'city').map((item) => `  <li><a href="${item.path}">${esc(item.name)}</a> <span>${item.count}</span></li>`).join('\n')}
+</ul>`
+    : '';
   const body = `<h2>${esc(cat.name)} by state</h2>
 <ul class="link-grid">
 ${states.map(({ s, n: k }) => `  <li><a href="${findStatePath(cat, s)}">${esc(s)}</a> <span>${k}</span></li>`).join('\n')}
 </ul>
+${outdoorHubBlock}
 ${renderAdSlot('display')}
 <h2>Top ${top.length} nationwide</h2>
 ${entryList(top, { peers: items })}
@@ -1567,7 +1582,15 @@ ${entryList(top, { peers: items })}
       featuredState: stateName,
       trail: [{ label: 'Find', href: '/find/' }, { label: cat.name, href: findPath(cat) }, { label: stateName }],
     };
+    const hubsHere = cat.slug === 'outdoor-ice-rinks'
+      ? (topics.outdoorHubs || []).filter((hub) => hub.states.includes(stateName))
+      : [];
+    const cityHubsHere = cat.slug === 'outdoor-ice-rinks'
+      ? (topics.outdoorReport?.added || []).filter((item) => item.kind === 'city' && item.path.includes(`/${stateSlug(stateName)}/`))
+      : [];
+    const outdoorHere = [...hubsHere.map((hub) => ({ href: hub.path, label: `Outdoor rinks near ${hub.name}` })), ...cityHubsHere.map((item) => ({ href: item.path, label: item.name }))];
     const sBody = `${stateFilterChips(byState.get(stateName), stateName, cat.slug)}
+${outdoorHere.length ? `<nav class="chip-row" aria-label="Outdoor hubs">${outdoorHere.map((l) => `<a class="chip" href="${l.href}">${esc(l.label)}</a>`).join('')}<a class="chip" href="/outdoor-ice-skating/">Outdoor ice skating near me</a></nav>` : ''}
 ${listSection(sItems, { peers: byState.get(stateName), stateName, headingTag: 'h2' })}
 ${renderAdSlot('display')}
 <p class="crumb-links"><a href="${findPath(cat)}">${esc(cat.name)} in other states</a></p>
@@ -1845,6 +1868,10 @@ console.log(`  dropped ${droppedNonVenues.length} non-rink listings`);
 for (const line of droppedNonVenues.slice(0, 25)) console.log(`    - ${line}`);
 if (droppedNonVenues.length > 25) console.log(`    ...and ${droppedNonVenues.length - 25} more`);
 console.log(`  topic pages: ${JSON.stringify(topics.counts)}`);
+if (topics.outdoorReport) {
+  console.log(`  outdoor pages: ${topics.outdoorReport.added.map((item) => `${item.path} (${item.count})`).join(', ')}`);
+  console.log(`  outdoor skipped: ${topics.outdoorReport.skipped.map((item) => `${item.name}: ${item.reason}`).join(' | ')}`);
+}
 if (!hasData) console.log('  note: data/listings.json is empty. Run `npm run import -- <outscraper export>` to publish rinks.');
 {
   const used = new Set(listings.map((l) => l.image.id));
