@@ -368,6 +368,10 @@ a.chip:hover { border-color: var(--blue); color: var(--blue-600); }
 .bar { height: 10px; background: var(--ice); border-radius: 999px; overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--gold); }
 .attr-list { padding-left: 1.2em; font-size: .95rem; }
+.rink-details { background: var(--ice-50); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px 14px; margin: 18px 0 8px; }
+.rink-details h2 { margin: 0 0 12px; font-size: 1.35rem; }
+.rink-details .fact-list > div { grid-template-columns: 112px 1fr; }
+.rink-details .data-note { margin: 12px 0 0; }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } .detail-side { position: static; } }
 
 /* --------------------------------------------------------------- maps */

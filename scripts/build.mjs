@@ -1402,6 +1402,142 @@ for (const l of listings) {
   nameCityCounts.set(k, (nameCityCounts.get(k) || 0) + 1);
 }
 
+/* Indoor / outdoor only when the listing text itself says so. "Outdoor pool"
+   or "outdoor seating" does not count, and a bare "pond" in a subtype does
+   not count. Structural words such as "ice arena" count as indoor. */
+const SETTING_GAP = 'seasonal|public|artificial|holiday|winter|covered|ice|and|or|indoor|outdoor';
+const OUTDOOR_ICE = new RegExp(String.raw`\b(?:outdoor|open air)(?:\s+(?:${SETTING_GAP})){0,3}\s+(?:ice|skating|skate|rink|arena)s?\b|\bice\s*(?:ribbon|trail)\b|\bskating\s*(?:ribbon|trail|pond)\b|\b(?:ice|hockey|skating)\s+pond\b`, 'i');
+const INDOOR_ICE = new RegExp(String.raw`\bindoor(?:\s+(?:${SETTING_GAP})){0,3}\s+(?:ice|skating|skate|rink|arena)s?\b|\bice\s*(?:arena|plex|center|centre|house|complex|palace|gardens?|forum|den)\b|\b(?:iceplex|icehouse|fieldhouse|coliseum|colosseum)\b`, 'i');
+
+function normSettingText(value) {
+  return String(value || '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function iceSettingLabel(l) {
+  const text = [l.name, l.category, l.subtypes, l.description].map(normSettingText).filter(Boolean).join(' | ');
+  if (!text) return null;
+  const outdoor = OUTDOOR_ICE.test(text);
+  const indoorPhrase = INDOOR_ICE.test(text);
+  const normalizedName = normSettingText(l.name);
+  const arenaInName = /\barena\b/i.test(normalizedName);
+  const arenaCategory = /\barena\b/i.test(normSettingText(l.category)) || /(^|\s)arena(\s|$)/i.test(normSettingText(l.subtypes));
+  const indoor = indoorPhrase || arenaInName || arenaCategory;
+  if (!outdoor && !indoor) return null;
+  if (outdoor && indoor) {
+    const explicitIndoor = /\bindoor\b/i.test(text) && indoorPhrase;
+    return explicitIndoor ? 'Indoor and outdoor' : 'Outdoor';
+  }
+  return outdoor ? 'Outdoor' : 'Indoor';
+}
+
+/** Google subtypes other than the primary category, in listing order. */
+function listedAs(l) {
+  if (!l.subtypes) return [];
+  const category = String(l.category || '').trim().toLowerCase();
+  const seen = new Set();
+  const out = [];
+  for (const part of String(l.subtypes).split(',')) {
+    const name = part.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (key === category || seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+  }
+  return out;
+}
+
+/** http(s) website from the listing, or null. Never guessed. */
+function officialWebsite(value) {
+  const raw = String(value || '').trim();
+  if (!/^https?:\/\//i.test(raw)) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+/** Known hours only. Days the listing leaves blank are omitted, not labeled. */
+function hoursSummary(l) {
+  const groups = groupedHours(l.hours).filter((g) => g.value && g.value !== 'Not listed');
+  if (!groups.length) return '';
+  return groups.map((g) => `${g.label} ${g.value}`).join('; ');
+}
+
+/* Google's 1-4 price level, or a literal "$" to "$$$$" / inexpensive-style
+   level stored on the listing. Prose and missing fields are not a price. */
+const PRICE_LEVEL_RANGE = { 1: '$', 2: '$$', 3: '$$$', 4: '$$$$' };
+const PRICE_LEVEL_WORDS = { inexpensive: '$', moderate: '$$', expensive: '$$$', 'very expensive': '$$$$' };
+
+function priceInfo(l) {
+  const raw = l.priceRange ?? l.priceLevel ?? l.price_level;
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number' && PRICE_LEVEL_RANGE[raw]) {
+    return { label: PRICE_LEVEL_RANGE[raw], range: PRICE_LEVEL_RANGE[raw] };
+  }
+  const text = String(raw).trim();
+  if (/^\${1,4}$/.test(text)) return { label: text, range: text };
+  const mapped = PRICE_LEVEL_WORDS[text.toLowerCase()];
+  if (mapped) return { label: text, range: mapped };
+  if (/^[1-4]$/.test(text)) {
+    const range = PRICE_LEVEL_RANGE[Number(text)];
+    return { label: range, range };
+  }
+  return null;
+}
+
+/** Google "about" attributes marked true, except payment methods. */
+function amenityNames(l) {
+  if (!l.about || typeof l.about !== 'object') return [];
+  const seen = new Set();
+  const names = [];
+  for (const [group, values] of Object.entries(l.about)) {
+    if (/^payments?$/i.test(group) || !Array.isArray(values)) continue;
+    for (const value of values) {
+      const name = String(value || '').trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+function rinkDetailsHtml(l) {
+  const website = officialWebsite(l.website);
+  const phone = String(l.phone || '').trim();
+  const hours = hoursSummary(l);
+  const price = priceInfo(l);
+  const amenities = amenityNames(l);
+  const subtypes = listedAs(l);
+  const setting = iceSettingLabel(l);
+  const rows = [];
+  if (setting) rows.push(['Setting', esc(setting)]);
+  if ((l.features || []).includes('Seasonal rink')) rows.push(['Season', 'Seasonal']);
+  if (l.category) rows.push(['Type', esc(l.category)]);
+  if (subtypes.length) rows.push(['Listed as', esc(subtypes.join(', '))]);
+  if (phone) rows.push(['Phone', `<a href="tel:${attr(phone.replace(/[^\d+]/g, ''))}">${esc(phone)}</a>`]);
+  if (website) rows.push(['Website', `<a href="${attr(website)}" target="_blank" rel="nofollow noopener noreferrer">${esc(prettyDomain(website))}</a>`]);
+  if (hours) rows.push(['Hours', esc(hours)]);
+  if (price) rows.push(['Price', esc(price.label)]);
+  if (amenities.length) rows.push(['Amenities', esc(amenities.join(', '))]);
+  if (!rows.length && !DATA_DATE_LABEL) return '';
+  const facts = rows.length
+    ? `<dl class="fact-list">\n${rows.map(([dt, dd]) => `        <div><dt>${dt}</dt><dd>${dd}</dd></div>`).join('\n')}\n      </dl>`
+    : '';
+  const note = DATA_DATE_LABEL ? `<p class="data-note">Data last updated ${esc(DATA_DATE_LABEL)}.</p>` : '';
+  return `<section class="rink-details" aria-labelledby="rink-details-heading">
+      <h2 id="rink-details-heading">Rink details</h2>
+      ${facts}
+      ${note}
+    </section>`;
+}
+
 function ratingBars(l) {
   const r = l.reviewsPerScore;
   if (!r) return '';
@@ -1479,6 +1615,7 @@ for (const l of listings) {
     ${l.status === 'CLOSED_TEMPORARILY' ? `<div class="notice"><p><strong>Temporarily closed.</strong> Google currently marks ${esc(l.name)} as temporarily closed. Seasonal rinks often show this between seasons. Check with the rink before you go.</p></div>` : ''}
     <p class="entry-rating">${ratingHtml(l)}${l.reviews ? ` <span class="entry-reviews">${num(l.reviews)} Google ${plural(l.reviews, 'review', 'reviews')}</span>` : ''}</p>
     ${chipsHtml(l, l.state)}
+    ${rinkDetailsHtml(l)}
     <h2>About ${esc(l.name)}</h2>
     <div class="prose">${summaryHtml(l, peers)}</div>
     ${renderAdSlot('display')}
@@ -1517,12 +1654,19 @@ ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
 </div>`;
 
   const hoursSpec = openingHoursSpec(l.hours);
+  const website = officialWebsite(l.website);
+  const price = priceInfo(l);
+  const amenities = amenityNames(l);
+  const pageUrl = SITE_URL + path;
   const jsonld = [
     {
       '@type': 'IceSkatingRink',
-      '@id': `${SITE_URL}${path}#rink`,
+      '@id': `${pageUrl}#rink`,
       name: l.name,
-      url: SITE_URL + path,
+      // The page on this site stays the entity id and mainEntityOfPage.
+      // When the listing has its own site, that site is url and sameAs.
+      mainEntityOfPage: pageUrl,
+      url: website || pageUrl,
       address: {
         '@type': 'PostalAddress',
         ...(l.street ? { streetAddress: l.street } : {}),
@@ -1533,9 +1677,17 @@ ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
       },
       geo: { '@type': 'GeoCoordinates', latitude: l.lat, longitude: l.lng },
       ...(l.phone ? { telephone: l.phone } : {}),
-      ...(l.website ? { sameAs: [l.website] } : {}),
+      ...(website ? { sameAs: [website] } : {}),
       ...(l.mapsUrl ? { hasMap: l.mapsUrl } : {}),
       ...(hoursSpec && hoursSpec.length ? { openingHoursSpecification: hoursSpec } : {}),
+      ...(price ? { priceRange: price.range } : {}),
+      ...(amenities.length ? {
+        amenityFeature: amenities.map((name) => ({
+          '@type': 'LocationFeatureSpecification',
+          name,
+          value: true,
+        })),
+      } : {}),
     },
     faqJsonLd(faqItems),
   ];

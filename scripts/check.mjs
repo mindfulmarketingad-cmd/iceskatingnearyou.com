@@ -23,6 +23,12 @@ import { featuredImageForPath, loadLifestylePhotos, OUTDOOR_FEATURED_PAGES } fro
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 const SITE_URL = 'https://www.iceskatingnearyou.com';
+const listingsFile = join(ROOT, 'data/listings.json');
+const listingsData = existsSync(listingsFile) ? JSON.parse(readFileSync(listingsFile, 'utf8')) : {};
+const importedAt = listingsData.importedAt ? new Date(listingsData.importedAt) : null;
+const DATA_DATE_LABEL = importedAt && !Number.isNaN(importedAt.getTime())
+  ? importedAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  : null;
 loadLifestylePhotos(ROOT);
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const ADS_TXT = 'google.com, pub-9332749804326149, DIRECT, f08c47fec0942fa0';
@@ -45,6 +51,74 @@ const files = [];
 const htmlFiles = files.filter((f) => f.endsWith('.html'));
 const errors = [];
 const warn = (file, msg) => errors.push(`${relative(DIST, file) || 'index.html'}: ${msg}`);
+
+function collectTyped(node, type, out) {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const item of node) collectTyped(item, type, out);
+    return;
+  }
+  const nodeType = node['@type'];
+  if (nodeType === type || (Array.isArray(nodeType) && nodeType.includes(type))) out.push(node);
+  for (const value of Object.values(node)) collectTyped(value, type, out);
+}
+
+function checkRinkPage(file, html, path, rinkNodes) {
+  const section = html.match(/<section class="rink-details"[\s\S]*?<\/section>/);
+  if (!section) {
+    warn(file, 'rink page is missing the Rink details block');
+    return;
+  }
+  const block = section[0];
+  if (!/<h2 id="rink-details-heading">Rink details<\/h2>/.test(block)) warn(file, 'Rink details heading is missing');
+  if (DATA_DATE_LABEL && !block.includes(`Data last updated ${DATA_DATE_LABEL}.`)) {
+    warn(file, `Data last updated note is missing or not ${DATA_DATE_LABEL}`);
+  }
+  if (/\bNot listed\b|\bundefined\b|\bnull\b/.test(block.replace(/<[^>]+>/g, ' '))) warn(file, 'Rink details block contains an empty or placeholder value');
+  const pairs = [...block.matchAll(/<dt>([^<]*)<\/dt><dd>([\s\S]*?)<\/dd>/g)];
+  if (!pairs.length) warn(file, 'Rink details block has no facts');
+  for (const pair of pairs) {
+    const label = pair[1].trim();
+    const text = pair[2].replace(/<[^>]+>/g, '').trim();
+    if (!label || !text) warn(file, 'Rink details block has an empty label or value');
+  }
+  if (rinkNodes.length !== 1) warn(file, `${rinkNodes.length} IceSkatingRink nodes`);
+  const node = rinkNodes[0];
+  if (!node) return;
+  if (node.aggregateRating) warn(file, 'IceSkatingRink includes aggregateRating');
+  if (node.mainEntityOfPage !== SITE_URL + path) warn(file, `mainEntityOfPage is ${node.mainEntityOfPage}`);
+  const websiteHref = (block.match(/<dt>Website<\/dt><dd><a href="([^"]+)"/) || [])[1];
+  const website = websiteHref ? websiteHref.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"') : '';
+  if (website) {
+    if (!Array.isArray(node.sameAs) || node.sameAs.length !== 1 || node.sameAs[0] !== website) {
+      warn(file, 'sameAs does not match the rink website');
+    }
+    if (node.url !== website) warn(file, 'JSON-LD url is not the rink website');
+  } else if (node.sameAs) {
+    warn(file, 'sameAs is set without a website in Rink details');
+  } else if (node.url !== SITE_URL + path) {
+    warn(file, `JSON-LD url ${node.url} is not the www rink page`);
+  }
+  const amenityText = (block.match(/<dt>Amenities<\/dt><dd>([^<]*)<\/dd>/) || [])[1];
+  if (amenityText) {
+    const expected = amenityText.split(', ').map((name) => name.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"'));
+    const got = Array.isArray(node.amenityFeature) ? node.amenityFeature : [];
+    if (got.length !== expected.length) warn(file, 'amenityFeature count does not match the visible amenities');
+    got.forEach((feature, i) => {
+      if (!feature || feature['@type'] !== 'LocationFeatureSpecification' || feature.value !== true || feature.name !== expected[i]) {
+        warn(file, `amenityFeature ${i} is not a real LocationFeatureSpecification`);
+      }
+    });
+  } else if (node.amenityFeature) {
+    warn(file, 'amenityFeature is set without a visible amenities row');
+  }
+  const priceText = (block.match(/<dt>Price<\/dt><dd>([^<]*)<\/dd>/) || [])[1];
+  if (priceText) {
+    if (!/^(\$|\$\$|\$\$\$|\$\$\$\$)$/.test(node.priceRange || '')) warn(file, `priceRange is ${JSON.stringify(node.priceRange)}`);
+  } else if (node.priceRange) {
+    warn(file, 'priceRange is set without a visible price');
+  }
+}
 
 const urlPathFor = (file) => {
   const rel = '/' + relative(DIST, file).replace(/\\/g, '/');
@@ -111,16 +185,19 @@ for (const file of htmlFiles) {
   if (html.includes('aggregateRating')) warn(file, 'third-party aggregateRating in schema');
   if (html.includes('https://iceskatingnearyou.com')) warn(file, 'absolute URL uses the apex host instead of www');
 
+  const rinkNodes = [];
   for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
     if (m[1].includes('/assets/img/lifestyle/') || m[1].includes('images.pexels.com') || m[1].includes('googleusercontent.com')) {
       warn(file, 'stock or remote photo used in structured data');
     }
     try {
-      JSON.parse(m[1]);
+      const parsed = JSON.parse(m[1]);
+      collectTyped(parsed, 'IceSkatingRink', rinkNodes);
     } catch {
       warn(file, 'JSON-LD does not parse');
     }
   }
+  if (rinkNodes.length) checkRinkPage(file, html, path, rinkNodes);
 
   if (path === '/') {
     for (const img of markup.matchAll(/<img\b[^>]*>/g)) {
