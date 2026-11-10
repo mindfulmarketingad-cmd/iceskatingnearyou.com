@@ -34,7 +34,7 @@ import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { slugify, STATES, STATE_NEIGHBORS, DAYS, distanceMiles, nonVenueReason } from './lib/listings.mjs';
 import { buildTopicPages } from './lib/topics.mjs';
-import { imageForListing, isOwnHostedPhoto, loadLifestylePhotos } from './lib/lifestyle.mjs';
+import { featuredImageForBlogPost, imageForListing, isOwnHostedPhoto, loadLifestylePhotos } from './lib/lifestyle.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
@@ -893,9 +893,10 @@ function featuredFigure(image) {
   const credit = image.author
     ? `Photo by <a href="${attr(image.sourceUrl)}" rel="noopener noreferrer">${esc(image.author)}</a>`
     : 'Photo';
+  const note = image.note || 'A stock photo of outdoor ice skating, not a photograph of a specific rink.';
   return `<figure class="hub-hero-img">
       <img src="${attr(image.hero)}" alt="${attr(image.alt)}" width="${image.width}" height="${image.height}" fetchpriority="high" decoding="async">
-      <figcaption>${credit} on <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a>. A stock photo of outdoor ice skating, not a photograph of a specific rink.</figcaption>
+      <figcaption>${credit} on <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a>. ${esc(note)}</figcaption>
     </figure>`;
 }
 
@@ -914,8 +915,9 @@ function layoutContent(meta, body) {
     </div>`
     : `<h1>${esc(meta.h1 || meta.title)}</h1>
     ${meta.lede ? `<p class="lede">${meta.lede}</p>` : ''}`;
+  const headWrap = layout === 'wide' || figure ? 'wrap' : 'wrap-narrow';
   const head = `<div class="page-head">
-  <div class="${layout === 'wide' ? 'wrap' : 'wrap-narrow'}">
+  <div class="${headWrap}">
     ${breadcrumbs(meta.trail)}
     ${heading}
   </div>
@@ -1019,9 +1021,9 @@ ${list.map((p) => `  <li><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</
 
 const dateLabelFor = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
-/* Blog covers: a post can set "image" in its front matter; otherwise it
-   gets one of the photo crops from the homepage video, picked by slug. */
-const postImage = (p) => p.meta.image || `/assets/img/photos/cover-${(seededHash(p.meta.slug) % 6) + 1}.jpg`;
+/* A post can set "image" to a lifestyle catalog id. Otherwise it gets a
+   stable public-skate photo from that catalog, hosted on this site. */
+const blogPhoto = (p) => featuredImageForBlogPost({ slug: p.meta.slug, image: p.meta.image });
 
 function autoToc(bodyHtml) {
   const heads = [];
@@ -1042,17 +1044,23 @@ for (const post of guidePosts) {
   const faqItems = meta.faq || [];
   const { toc, html } = autoToc(post.body);
   const related = guidePosts.filter((p) => p !== post).sort((a, b) => seededHash(meta.slug + a.meta.slug) - seededHash(meta.slug + b.meta.slug)).slice(0, 3);
+  const photo = blogPhoto(post);
   const pageMeta = {
     ...meta,
     path,
     layout: 'prose',
     nav: 'blog',
     ogType: 'article',
+    lede: meta.excerpt ? esc(meta.excerpt) : '',
+    ogImage: `${SITE_URL}${photo.hero}`,
+    ogImageAlt: photo.alt,
+    ogImageWidth: photo.width,
+    ogImageHeight: photo.height,
+    featuredImage: photo,
     trail: [{ label: 'Blog', href: '/blog/' }, { label: meta.h1 || meta.title }],
   };
   const dateLabel = new Date(`${meta.date}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-  const body = `<figure class="post-hero"><img src="${postImage(post)}" alt="Cover image: ${attr(post.meta.h1 || post.meta.title)}" width="800" height="500" fetchpriority="high"></figure>
-<p class="byline">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabel}</time> <span aria-hidden="true">&middot;</span> ${esc(meta.readingTime || '')}</p>
+  const body = `<p class="byline">By the <a href="/about/">${SITE_NAME} Editorial Team</a> <span aria-hidden="true">&middot;</span> <time datetime="${meta.date}">${dateLabel}</time> <span aria-hidden="true">&middot;</span> ${esc(meta.readingTime || '')}</p>
 ${toc}
 ${injectArticleAds(html)}
 ${faqBlock(faqItems)}
@@ -1065,7 +1073,7 @@ ${related.length ? `<aside class="related"><h2>Keep reading</h2>${guideLinks(rel
       datePublished: meta.date,
       dateModified: meta.updated || meta.date,
       mainEntityOfPage: SITE_URL + path,
-      image: SITE_URL + postImage(post),
+      image: `${SITE_URL}${photo.hero}`,
       author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
       publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/img/icon-512.png` } },
     },
@@ -1086,14 +1094,17 @@ posts.sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || '') || a.m
 function blogCards(list) {
   if (!list.length) return '<p>Guides are on the way.</p>';
   return `<div class="post-grid">
-${list.map((p) => `  <article class="card post-card">
-    <a class="card-media" href="${p.path}" tabindex="-1" aria-hidden="true"><img src="${postImage(p)}" alt="Cover image: ${attr(p.meta.h1 || p.meta.title)}" width="800" height="500" loading="lazy" decoding="async"></a>
+${list.map((p) => {
+    const photo = blogPhoto(p);
+    return `  <article class="card post-card">
+    <a class="card-media" href="${p.path}" tabindex="-1" aria-hidden="true"><img src="${attr(photo.card)}" alt="${attr(photo.alt)}" width="640" height="400" loading="lazy" decoding="async"></a>
     <div class="card-body">
       <p class="eyebrow">Guide <span aria-hidden="true">&middot;</span> ${esc(p.meta.readingTime || '')}</p>
       <h3><a href="${p.path}">${esc(p.meta.h1 || p.meta.title)}</a></h3>
       <p>${esc(p.meta.excerpt || '')}</p>
     </div>
-  </article>`).join('\n')}
+  </article>`;
+  }).join('\n')}
 </div>`;
 }
 
@@ -1925,7 +1936,7 @@ for (const page of staticPages) {
       ['Hosted on this site.', 'See the Pexels License.', 'Free to view.']
     ),
     h1: 'Photo credits',
-    lede: 'The photographs on rink cards, rink pages, and outdoor guides are free-licensed ice skating scenes we host ourselves. They are not photographs of a specific rink.',
+    lede: 'The photographs on rink cards, rink pages, outdoor guides, and blog posts are free-licensed ice skating scenes we host ourselves. They are not photographs of a specific rink.',
     layout: 'prose',
     nav: '',
     trail: [{ label: 'Photo credits' }],
@@ -1937,7 +1948,7 @@ for (const page of staticPages) {
     byAuthor.get(name).push(photo);
   }
   const groups = [...byAuthor.entries()].sort((a, b) => a[0].localeCompare(b[0], 'en'));
-  const body = `<p>Listing photos and the heroes on outdoor guides come from <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a> and are stored on this site as WebP files. The <a href="https://www.pexels.com/license/" rel="noopener noreferrer">Pexels License</a> does not require credit. We name the photographer anyway. Nothing in this list is an official photo of a rink in the directory.</p>
+  const body = `<p>Listing photos, the heroes on outdoor guides, and the heroes on blog posts come from <a href="https://www.pexels.com/" rel="noopener noreferrer">Pexels</a> and are stored on this site as WebP files. The <a href="https://www.pexels.com/license/" rel="noopener noreferrer">Pexels License</a> does not require credit. We name the photographer anyway. Nothing in this list is an official photo of a rink in the directory.</p>
 ${groups.map(([author, items]) => `<h2>${esc(author)}</h2>
 <ul>
 ${items.map((p) => `  <li><a href="${attr(p.sourceUrl)}" rel="noopener noreferrer">${esc(p.alt)}</a></li>`).join('\n')}

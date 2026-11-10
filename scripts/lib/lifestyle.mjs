@@ -136,3 +136,75 @@ export function featuredImageForPath(path) {
     height: HERO_HEIGHT,
   };
 }
+
+/**
+ * Public-skate scenes for blog posts. These are people skating, not outdoor
+ * hockey, and none of them is already the hero of an outdoor page.
+ * The first id is the default photo on the cost guide.
+ */
+export const DEFAULT_BLOG_FEATURED_ID = 'pexels-6539264';
+
+export const BLOG_FEATURED_POOL = [
+  DEFAULT_BLOG_FEATURED_ID,
+  'pexels-6015973',
+  'pexels-6541490',
+  'pexels-6541474',
+];
+
+const outdoorHeroIds = new Set(Object.values(OUTDOOR_FEATURED_PAGES));
+if (BLOG_FEATURED_POOL.some((id) => outdoorHeroIds.has(id))) {
+  throw new Error('blog featured photos must not reuse an outdoor page hero');
+}
+if (new Set(BLOG_FEATURED_POOL).size !== BLOG_FEATURED_POOL.length) {
+  throw new Error('blog featured photos must be unique');
+}
+
+const BLOG_PHOTO_NOTE = 'A stock photo of ice skating, not a photograph of a specific rink.';
+
+function stableHash(seed) {
+  let hash = 0;
+  const text = String(seed || '');
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
+function blogCatalogPhoto(id) {
+  const all = photos || [];
+  if (!all.length) throw new Error('lifestyle photo catalog is empty');
+  const photo = all.find((item) => item.id === id);
+  if (!photo) throw new Error(`blog featured photo ${id} is not in the lifestyle catalog`);
+  return photo;
+}
+
+function blogFeaturedId(image, slug) {
+  if (typeof image === 'string' && image.trim()) {
+    const value = image.trim();
+    const fromPath = value.match(/(pexels-\d+)\.webp$/);
+    if (fromPath) return fromPath[1];
+    if (/^pexels-\d+$/.test(value)) return value;
+    throw new Error(`blog featured image "${value}" is not a lifestyle catalog id`);
+  }
+  // Same slug, same file. The pool is public-skate scenes only.
+  return BLOG_FEATURED_POOL[stableHash(slug) % BLOG_FEATURED_POOL.length];
+}
+
+/**
+ * Hosted hero for one blog post.
+ * Front matter `image` may be a catalog id (`pexels-6539264`) or a path to
+ * that photo under /assets/img/lifestyle/. Without one, the slug picks a
+ * stable photo from the public-skate pool, so a new post still gets a hero.
+ */
+export function featuredImageForBlogPost({ slug, image } = {}) {
+  const photo = blogCatalogPhoto(blogFeaturedId(image, slug));
+  return {
+    id: photo.id,
+    card: `/assets/img/lifestyle/${photo.cardFile}`,
+    hero: `/assets/img/lifestyle/${photo.file}`,
+    alt: photo.alt,
+    author: photo.author || null,
+    sourceUrl: photo.sourceUrl,
+    width: HERO_WIDTH,
+    height: HERO_HEIGHT,
+    note: BLOG_PHOTO_NOTE,
+  };
+}
