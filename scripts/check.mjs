@@ -14,11 +14,12 @@
  * - emoji anywhere in the HTML
  * - a sitemap.xml URL that does not exist or is marked noindex
  * - ads.txt not matching the required line exactly
+ * - a blog post that uses og-image.jpg or has no hosted hero
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { featuredImageForPath, loadLifestylePhotos, OUTDOOR_FEATURED_PAGES } from './lib/lifestyle.mjs';
+import { BLOG_FEATURED_POOL, DEFAULT_BLOG_FEATURED_ID, featuredImageForBlogPost, featuredImageForPath, loadLifestylePhotos, OUTDOOR_FEATURED_PAGES } from './lib/lifestyle.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -61,6 +62,30 @@ function collectTyped(node, type, out) {
   const nodeType = node['@type'];
   if (nodeType === type || (Array.isArray(nodeType) && nodeType.includes(type))) out.push(node);
   for (const value of Object.values(node)) collectTyped(value, type, out);
+}
+
+function jsonLdTextHasStock(value) {
+  return typeof value === 'string'
+    && (value.includes('/assets/img/lifestyle/') || value.includes('images.pexels.com') || value.includes('googleusercontent.com'));
+}
+
+/** BlogPosting may name the hosted hero. IceSkatingRink and every other type may not. */
+function scanJsonLdPhotos(node, hits) {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const item of node) scanJsonLdPhotos(item, hits);
+    return;
+  }
+  const nodeType = node['@type'];
+  const types = Array.isArray(nodeType) ? nodeType : nodeType ? [nodeType] : [];
+  if (types.includes('IceSkatingRink') && jsonLdTextHasStock(JSON.stringify(node))) {
+    hits.add('stock or remote photo used in IceSkatingRink structured data');
+  }
+  const skipOwnStrings = types.includes('BlogPosting') || types.includes('IceSkatingRink');
+  for (const value of Object.values(node)) {
+    if (value && typeof value === 'object') scanJsonLdPhotos(value, hits);
+    else if (!skipOwnStrings && jsonLdTextHasStock(value)) hits.add('stock or remote photo used in structured data');
+  }
 }
 
 function checkRinkPage(file, html, path, rinkNodes) {
@@ -187,11 +212,11 @@ for (const file of htmlFiles) {
 
   const rinkNodes = [];
   for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-    if (m[1].includes('/assets/img/lifestyle/') || m[1].includes('images.pexels.com') || m[1].includes('googleusercontent.com')) {
-      warn(file, 'stock or remote photo used in structured data');
-    }
     try {
       const parsed = JSON.parse(m[1]);
+      const hits = new Set();
+      scanJsonLdPhotos(parsed, hits);
+      for (const hit of hits) warn(file, hit);
       collectTyped(parsed, 'IceSkatingRink', rinkNodes);
     } catch {
       warn(file, 'JSON-LD does not parse');
@@ -269,6 +294,73 @@ for (const pagePath of Object.keys(OUTDOOR_FEATURED_PAGES)) {
   }
   if (!html.includes('"@type":"CollectionPage"') && !html.includes('"@type": "CollectionPage"')) {
     errors.push(`${pagePath}: CollectionPage schema is missing`);
+  }
+}
+
+/* Blog posts need a hosted hero and that same photo as the social image. */
+const outdoorHeroFiles = new Set(Object.values(OUTDOOR_FEATURED_PAGES).map((id) => `/assets/img/lifestyle/${id}.webp`));
+if (outdoorHeroFiles.has(`/assets/img/lifestyle/${DEFAULT_BLOG_FEATURED_ID}.webp`)) {
+  errors.push('default blog featured photo reuses an outdoor page hero');
+}
+for (const id of BLOG_FEATURED_POOL) {
+  if (outdoorHeroFiles.has(`/assets/img/lifestyle/${id}.webp`)) errors.push(`blog pool photo ${id} reuses an outdoor page hero`);
+}
+const autoA = featuredImageForBlogPost({ slug: 'future-skate-guide' });
+const autoB = featuredImageForBlogPost({ slug: 'future-skate-guide' });
+if (autoA.hero !== autoB.hero || autoA.width !== 1200 || autoA.height !== 675 || !autoA.hero.startsWith('/assets/img/lifestyle/')) {
+  errors.push('blog posts without an image do not get a stable 1200x675 lifestyle hero');
+}
+if (!BLOG_FEATURED_POOL.includes(autoA.id)) errors.push(`default blog photo ${autoA.id} is outside the public-skate pool`);
+const override = featuredImageForBlogPost({ slug: 'future-skate-guide', image: 'pexels-6015973' });
+if (override.id !== 'pexels-6015973') errors.push('per-post blog featured image was ignored');
+const blogPostPaths = htmlFiles.map(urlPathFor).filter((pagePath) => /^\/blog\/[^/]+\/$/.test(pagePath));
+if (!blogPostPaths.length) errors.push('no blog post pages were built');
+for (const pagePath of blogPostPaths) {
+  const file = join(DIST, pagePath, 'index.html');
+  const html = readFileSync(file, 'utf8');
+  if (html.includes('/assets/img/og-image.jpg')) errors.push(`${pagePath}: still uses the generic og-image.jpg`);
+  const headStart = html.indexOf('<div class="hub-hero-inner">');
+  const heroAt = html.indexOf('class="hub-hero-img"');
+  if (headStart === -1 || heroAt === -1 || !html.slice(headStart, heroAt).includes('<h1')) {
+    errors.push(`${pagePath}: missing featured image next to the heading`);
+  }
+  const figure = (html.match(/<figure class="hub-hero-img">[\s\S]*?<\/figure>/) || [])[0] || '';
+  const heroSrc = (figure.match(/<img src="([^"]+)"/) || [])[1];
+  if (!heroSrc || !heroSrc.startsWith('/assets/img/lifestyle/')) {
+    errors.push(`${pagePath}: hero is not a hosted lifestyle photo`);
+    continue;
+  }
+  if (!figure.includes('width="1200"') || !figure.includes('height="675"')) {
+    errors.push(`${pagePath}: hero is not marked at its 1200x675 size`);
+  }
+  if (!/Photo by <a [^>]*rel="noopener noreferrer">[^<]+<\/a>/.test(figure) || !figure.includes('https://www.pexels.com/')) {
+    errors.push(`${pagePath}: photographer credit is missing`);
+  }
+  const absolute = `${SITE_URL}${heroSrc}`;
+  const og = (html.match(/<meta property="og:image" content="([^"]*)"/) || [])[1];
+  const tw = (html.match(/<meta name="twitter:image" content="([^"]*)"/) || [])[1];
+  if (og !== absolute) errors.push(`${pagePath}: og:image is ${og || 'missing'}`);
+  if (tw !== absolute) errors.push(`${pagePath}: twitter:image is ${tw || 'missing'}`);
+  if (!String(og || '').startsWith(`${SITE_URL}/`)) errors.push(`${pagePath}: og:image is not an absolute www URL`);
+  const width = (html.match(/<meta property="og:image:width" content="([^"]*)"/) || [])[1];
+  const height = (html.match(/<meta property="og:image:height" content="([^"]*)"/) || [])[1];
+  if (width !== '1200' || height !== '675') errors.push(`${pagePath}: og:image dimensions are ${width}x${height}, expected 1200x675`);
+  const canonical = (html.match(/<link rel="canonical" href="([^"]*)"/) || [])[1];
+  if (canonical !== `${SITE_URL}${pagePath}`) errors.push(`${pagePath}: canonical ${canonical || 'missing'} is not the www URL`);
+  let postingImage = null;
+  for (const match of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    try {
+      const nodes = [];
+      collectTyped(JSON.parse(match[1]), 'BlogPosting', nodes);
+      if (nodes[0] && nodes[0].image) postingImage = nodes[0].image;
+    } catch { /* parse errors are already reported */ }
+  }
+  if (postingImage !== absolute) errors.push(`${pagePath}: BlogPosting image is ${postingImage || 'missing'}`);
+  if (pagePath === '/blog/how-much-does-ice-skating-cost/') {
+    if (heroSrc !== `/assets/img/lifestyle/${DEFAULT_BLOG_FEATURED_ID}.webp`) {
+      errors.push(`${pagePath}: expected the public-skate featured photo ${DEFAULT_BLOG_FEATURED_ID}`);
+    }
+    if (outdoorHeroFiles.has(heroSrc)) errors.push(`${pagePath}: featured photo reuses an outdoor page hero`);
   }
 }
 
