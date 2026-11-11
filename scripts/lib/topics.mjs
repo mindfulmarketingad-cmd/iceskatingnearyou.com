@@ -762,6 +762,30 @@ ${metros.map((m) => `  <li><a href="/near/${m.slug}/">${esc(m.name)}</a> <span>$
 <p class="section-sub"><a href="/near/">All metro hubs</a> <span aria-hidden="true">&middot;</span> <a href="${OUTDOOR_GUIDE_PATH}">Outdoor ice skating near me</a> <span aria-hidden="true">&middot;</span> <a href="/open/late/">Rinks open late</a> <span aria-hidden="true">&middot;</span> <a href="/open/weekends/">Open on weekends</a></p>`
     : '';
 
+  // Published /near/ hubs only. Christmas and outdoor paths are set when that
+  // page was actually written, so callers never link a hub that 404s.
+  const metroHubs = [...metros]
+    .sort((a, b) => b.items.length - a.items.length || a.slug.localeCompare(b.slug))
+    .map((metro) => {
+      const christmasPath = `/near/${metro.slug}/christmas-ice-skating/`;
+      const outdoorPath = `/near/${metro.slug}/outdoor-ice-rinks/`;
+      const christmas = planByPath.get(christmasPath);
+      const outdoor = planByPath.get(outdoorPath);
+      return {
+        name: metro.name,
+        slug: metro.slug,
+        state: metro.state,
+        lat: metro.lat,
+        lng: metro.lng,
+        count: metro.items.length,
+        path: `/near/${metro.slug}/`,
+        christmasPath: christmas ? christmasPath : null,
+        christmasCount: christmas ? christmas.items.length : 0,
+        outdoorPath: outdoor ? outdoorPath : null,
+        outdoorCount: outdoor ? outdoor.items.length : 0,
+      };
+    });
+
   return {
     linksByState,
     linksByCity,
@@ -769,6 +793,7 @@ ${metros.map((m) => `  <li><a href="/near/${m.slug}/">${esc(m.name)}</a> <span>$
     searchEntries,
     homeHtml,
     plans: plans.length,
+    metroHubs,
     outdoorHubs,
     outdoorGuidePath: OUTDOOR_GUIDE_PATH,
     outdoorReport,
