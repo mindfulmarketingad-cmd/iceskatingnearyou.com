@@ -33,6 +33,7 @@ import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync, existsSync, rea
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { slugify, STATES, STATE_NEIGHBORS, DAYS, distanceMiles, nonVenueReason } from './lib/listings.mjs';
+import { METRO_RADIUS_MILES } from './lib/metros.mjs';
 import { buildTopicPages } from './lib/topics.mjs';
 import { featuredImageForBlogPost, imageForListing, isOwnHostedPhoto, loadLifestylePhotos } from './lib/lifestyle.mjs';
 
@@ -1205,6 +1206,76 @@ const topics = buildTopicPages({
   listToolScripts,
 });
 
+/* Internal linking hubs. Each block stays short so a page does not turn
+   into a sitemap. Every href is a page this build writes. */
+const HUB_LINK_CAP = 12;
+
+function uniqueLinks(links, cap = HUB_LINK_CAP) {
+  const out = [];
+  const seen = new Set();
+  for (const link of links) {
+    if (!link || !link.href || seen.has(link.href)) continue;
+    seen.add(link.href);
+    out.push(link);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+function plainLinkList(links) {
+  return `<ul class="plain-links">\n${links.map((l) => `  <li><a href="${l.href}">${esc(l.label)}</a></li>`).join('\n')}\n</ul>`;
+}
+
+function plainLinkSection(id, heading, links) {
+  const items = uniqueLinks(links);
+  if (!items.length) return '';
+  return `<section class="hub-block" aria-labelledby="${id}">
+  <h2 id="${id}">${esc(heading)}</h2>
+  ${plainLinkList(items)}
+</section>`;
+}
+
+function metroLinksFor(hubs) {
+  const links = [];
+  for (const hub of hubs) {
+    links.push({ href: hub.path, label: `Ice skating near ${hub.name}` });
+    if (hub.outdoorPath) links.push({ href: hub.outdoorPath, label: `Outdoor ice rinks near ${hub.name}` });
+    if (hub.christmasPath) links.push({ href: hub.christmasPath, label: `Christmas ice skating near ${hub.name}` });
+  }
+  return links;
+}
+
+function homeHubLinks() {
+  const stateLinks = [...stateNames]
+    .sort((a, b) => byState.get(b).length - byState.get(a).length || a.localeCompare(b))
+    .slice(0, HUB_LINK_CAP)
+    .map((s) => ({ href: statePath(s), label: `Ice skating rinks in ${s}` }));
+  const metroLinks = uniqueLinks(metroLinksFor(topics.metroHubs || []), HUB_LINK_CAP - 1);
+  const guide = topics.outdoorGuidePath;
+  if (guide && !metroLinks.some((l) => l.href === guide)) {
+    metroLinks.push({ href: guide, label: 'Outdoor ice skating near me' });
+  }
+  if (!stateLinks.length && !metroLinks.length) return '';
+  return `<section class="section section-tint directory-hubs" aria-labelledby="directory-hubs-heading">
+  <div class="wrap">
+    <p class="eyebrow">Directory hubs</p>
+    <h2 id="directory-hubs-heading">State and metro skating hubs</h2>
+    <p>State directories list every rink in one state. Metro pages list rinks within ${METRO_RADIUS_MILES} miles of downtown. Christmas and outdoor pages are linked only where the listings support them.</p>
+    <div class="two-col">
+      ${stateLinks.length ? `<div>
+        <h3>State directories</h3>
+        ${plainLinkList(stateLinks)}
+        <p class="section-sub"><a href="/states/">All state directories</a></p>
+      </div>` : '<div></div>'}
+      ${metroLinks.length ? `<div>
+        <h3>Metro, Christmas, and outdoor hubs</h3>
+        ${plainLinkList(metroLinks)}
+      </div>` : ''}
+    </div>
+  </div>
+</section>`;
+}
+
 for (const stateName of stateNames) {
   const items = byState.get(stateName);
   const n = items.length;
@@ -1253,7 +1324,15 @@ for (const stateName of stateNames) {
 
   const stateLinks = topics.linksByState.get(stateName) || [];
   const isOutdoorGuide = (href) => href === '/outdoor-ice-skating/';
-  const stateHubs = stateLinks.filter((l) => l.href.startsWith('/open/') || l.href.startsWith('/near/') || isOutdoorGuide(l.href));
+  const stateMetros = (topics.metroHubs || []).filter((hub) => hub.state === stateName);
+  const stateMetroLinks = uniqueLinks(metroLinksFor(stateMetros));
+  const stateMetroHrefs = new Set(stateMetroLinks.map((l) => l.href));
+  const stateFindLinks = uniqueLinks(
+    categories
+      .filter((cat) => findStatePages.has(`${cat.slug}|${stateName}`))
+      .map((cat) => ({ href: findStatePath(cat, stateName), label: `${cat.name} in ${stateName}` }))
+  );
+  const stateHubs = stateLinks.filter((l) => (l.href.startsWith('/open/') || l.href.startsWith('/near/') || isOutdoorGuide(l.href)) && !stateMetroHrefs.has(l.href));
   const stateCityTopics = stateLinks
     .filter((l) => !l.href.startsWith('/open/') && !l.href.startsWith('/near/') && !isOutdoorGuide(l.href))
     .sort((a, b) => Number(b.href.includes('/outdoor-ice-rinks/')) - Number(a.href.includes('/outdoor-ice-rinks/')))
@@ -1279,6 +1358,8 @@ ${renderAdSlot('display')}
 ${cities.map(({ city, items: ci }) => `    <li><a href="${cityPath(stateName, city)}"><span>${esc(city)}</span><span class="state-list-n">${ci.length}</span></a></li>`).join('\n')}
   </ul>
 </section>
+${plainLinkSection('metro-hubs', `Metro hubs in ${stateName}`, stateMetroLinks)}
+${plainLinkSection('rink-types', `Rink types in ${stateName}`, stateFindLinks)}
 ${stateGuides.length ? `<section class="hub-block" aria-labelledby="guides">
   <h2 id="guides">More ways to find ice in ${esc(stateName)}</h2>
   <ul class="plain-links">
@@ -1559,6 +1640,50 @@ ${[5, 4, 3, 2, 1].map((k) => `  <div class="bar-row"><span>${k} star</span><span
 </div>`;
 }
 
+/* Two guides per rink. The pool follows the rink's own feature tags, and the
+   pair is rotated by slug so the same rink always links the same posts. */
+const RINK_GUIDE_POOLS = [
+  { test: (features) => features.has('Hockey'), slugs: ['figure-skates-vs-hockey-skates', 'how-to-stop-on-ice-skates', 'how-often-to-sharpen-ice-skates'] },
+  { test: (features) => features.has('Figure skating'), slugs: ['how-should-ice-skates-fit', 'figure-skates-vs-hockey-skates', 'how-to-ice-skate-for-beginners'] },
+  { test: (features) => features.has('Skating lessons'), slugs: ['how-to-ice-skate-for-beginners', 'how-much-does-ice-skating-cost', 'how-should-ice-skates-fit'] },
+  { test: (features) => features.has('Outdoor rink') || features.has('Seasonal rink'), slugs: ['what-to-wear-ice-skating', 'is-pond-ice-safe-to-skate-on', 'how-much-does-ice-skating-cost'] },
+  { test: (features) => features.has('Good for kids'), slugs: ['ice-skating-with-kids', 'what-to-wear-ice-skating', 'how-to-ice-skate-for-beginners'] },
+  { test: (features) => features.has('Indoor rink'), slugs: ['how-indoor-ice-rinks-work', 'what-to-wear-ice-skating', 'public-skating-sessions-explained'] },
+];
+const GENERAL_GUIDE_SLUGS = ['how-to-ice-skate-for-beginners', 'what-to-wear-ice-skating', 'how-much-does-ice-skating-cost', 'public-skating-sessions-explained'];
+
+function guidesForRink(l) {
+  const features = new Set(l.features || []);
+  const pool = RINK_GUIDE_POOLS.find((rule) => rule.test(features));
+  const posts = (pool ? pool.slugs : GENERAL_GUIDE_SLUGS).map((slug) => postBySlug.get(slug)).filter(Boolean);
+  if (posts.length <= 2) return posts;
+  const start = seededHash(`related-guides|${l.slug || l.id || l.url}`) % posts.length;
+  return [0, 1].map((step) => posts[(start + step) % posts.length]);
+}
+
+function nearestMetroHub(l) {
+  const hubs = topics.metroHubs || [];
+  let best = null;
+  for (const hub of hubs) {
+    const miles = distanceMiles(hub.lat, hub.lng, l.lat, l.lng);
+    if (miles > METRO_RADIUS_MILES) continue;
+    if (!best || miles < best.miles || (miles === best.miles && hub.slug < best.hub.slug)) best = { hub, miles };
+  }
+  if (best) return best.hub;
+  const city = String(l.city || '').toLowerCase();
+  return hubs.find((hub) => hub.state === l.state && hub.name.toLowerCase() === city) || null;
+}
+
+function nearbyRelatedLinks(l) {
+  const links = [];
+  const metro = nearestMetroHub(l);
+  if (metro) links.push({ href: metro.path, label: `Ice skating near ${metro.name}` });
+  links.push({ href: statePath(l.state), label: `Ice skating rinks in ${l.state}` });
+  links.push({ href: cityPath(l.state, l.city), label: `Ice skating in ${l.city}, ${l.stateCode}` });
+  for (const post of guidesForRink(l)) links.push({ href: post.path, label: post.meta.h1 || post.meta.title });
+  return uniqueLinks(links);
+}
+
 for (const l of listings) {
   const path = l.url;
   const place = `${l.city}, ${l.stateCode}`;
@@ -1647,6 +1772,10 @@ ${payments.length ? `      <li><b>Payments:</b> ${esc(payments.join(', '))}</li>
     <div class="card-grid">
 ${nearby.map((x) => renderCard(x.l, { miles: x.miles })).join('\n')}
     </div>` : ''}
+    <section aria-labelledby="nearby-related">
+      <h2 id="nearby-related">Nearby and related</h2>
+      ${plainLinkList(nearbyRelatedLinks(l))}
+    </section>
     <p class="crumb-links">${cityItems.length > 1 ? `<a href="${cityPath(l.state, l.city)}">All ${cityItems.length} rinks in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> ` : `<a href="${cityPath(l.state, l.city)}">Ice skating in ${esc(l.city)}</a> <span aria-hidden="true">&middot;</span> `}<a href="${statePath(l.state)}">All ${peers.length} rinks in ${esc(l.state)}</a> <span aria-hidden="true">&middot;</span> <a href="${mapStatePath(l.state)}?focus=${attr(l.slug)}">See it on the map</a></p>
   </div>
   <aside class="detail-side">
@@ -1859,6 +1988,7 @@ const tokens = {
     ? `<div class="card-row" data-near-list>\n${topRated.map((l) => renderCard(l)).join('\n')}\n</div>`
     : '<div class="card-row" data-near-list></div>',
   '{{TOPIC_HOME}}': topics.homeHtml || '<p>Metro hubs appear here once listings are published.</p>',
+  '{{HUB_LINKS}}': homeHubLinks(),
   '{{FIND_CHIPS}}': findCounts.some((x) => x.n)
     ? `<div class="chip-row chip-row-lg">${findCounts.filter((x) => x.n).map(({ c, n }) => `<a class="chip" href="${findPath(c)}">${esc(c.name)} <span>${n}</span></a>`).join('')}</div>`
     : '<p>Type filters appear once listings are published.</p>',
